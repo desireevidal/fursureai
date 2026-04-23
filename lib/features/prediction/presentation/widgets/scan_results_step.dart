@@ -43,6 +43,7 @@ class ScanResultsStep extends StatelessWidget {
     final purpleHeight = topPad + headerHeight;
     final circleSize =
         (MediaQuery.sizeOf(context).width * 0.37).clamp(100.0, 150.0);
+    final surfaceOverlap = context.radius.xl.topLeft.x;
     final brand = context.brand;
     final onPrimary = Theme.of(context).colorScheme.onPrimary;
     final spacing = context.spacing;
@@ -55,16 +56,32 @@ class ScanResultsStep extends StatelessWidget {
       horizontalPadding: false,
       child: Stack(
         children: [
+          Positioned(
+            top: purpleHeight - surfaceOverlap,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.only(
+                  topLeft: context.radius.xxl.topLeft,
+                  topRight: context.radius.xxl.topRight,
+                ),
+              ),
+              clipBehavior: Clip.antiAlias,
+            ),
+          ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SizedBox(height: purpleHeight + circleSize / 2),
+              SizedBox(height: purpleHeight + circleSize / 2 - surfaceOverlap),
               Expanded(
                 child: SingleChildScrollView(
                   child: Padding(
                     padding: EdgeInsets.fromLTRB(
                       lo.screenPadH,
-                      lo.screenPadV,
+                      surfaceOverlap + lo.screenPadV,
                       lo.screenPadH,
                       0,
                     ),

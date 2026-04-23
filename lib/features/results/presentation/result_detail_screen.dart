@@ -9,6 +9,8 @@ import 'package:fursure/core/theme/app_radius.dart';
 import 'package:fursure/core/theme/app_spacing.dart';
 import 'package:fursure/core/theme/brand_colors.dart';
 import 'package:fursure/core/widgets/app_back_button.dart';
+import 'package:fursure/core/widgets/app_cat_name_dialog.dart';
+import 'package:fursure/core/widgets/app_confirmation_dialog.dart';
 import 'package:fursure/core/widgets/app_page.dart';
 import 'package:fursure/core/widgets/buttons.dart';
 import 'package:fursure/core/widgets/label.dart';
@@ -125,6 +127,7 @@ class _DetailView extends StatelessWidget {
     const headerHeight = 88.0;
     final purpleHeight = topPad + headerHeight;
     const circleSize = 140.0;
+    final surfaceOverlap = context.radius.xl.topLeft.x;
 
     final brand = context.brand;
     final onPrimary = Theme.of(context).colorScheme.onPrimary;
@@ -158,16 +161,32 @@ class _DetailView extends StatelessWidget {
       horizontalPadding: false,
       child: Stack(
         children: [
+          Positioned(
+            top: purpleHeight - surfaceOverlap,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.only(
+                  topLeft: context.radius.xxl.topLeft,
+                  topRight: context.radius.xxl.topRight,
+                ),
+              ),
+              clipBehavior: Clip.antiAlias,
+            ),
+          ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SizedBox(height: purpleHeight + circleSize / 2),
+              SizedBox(height: purpleHeight + circleSize / 2 - surfaceOverlap),
               Expanded(
                 child: SingleChildScrollView(
                   child: Padding(
                     padding: EdgeInsets.fromLTRB(
                       lo.screenPadH,
-                      lo.screenPadV,
+                      surfaceOverlap + lo.screenPadV,
                       lo.screenPadH,
                       0,
                     ),
@@ -344,22 +363,11 @@ class _DetailView extends StatelessWidget {
   }
 
   Future<void> _confirmDelete(BuildContext context) async {
-    final shouldDelete = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete Pawfile'),
-        content: const Text('This entry will be removed from My Clawlection.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final shouldDelete = await showAppConfirmationDialog(
+      context,
+      title: 'Delete Pawfile',
+      message: 'This entry will be removed from My Clawlection.',
+      confirmLabel: 'Delete',
     );
 
     if (shouldDelete == true && onDelete != null) {
@@ -373,31 +381,9 @@ class _DetailView extends StatelessWidget {
   Future<void> _editName(BuildContext context) async {
     if (onRename == null) return;
 
-    final controller = TextEditingController(text: record.catName ?? '');
-    final updatedName = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Edit cat name'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(
-            hintText: 'Enter cat name',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () =>
-                Navigator.pop(dialogContext, controller.text.trim()),
-            child: const Text('Save'),
-          ),
-        ],
-      ),
+    final updatedName = await showAppCatNameDialog(
+      context,
+      initialName: record.catName ?? '',
     );
 
     if (updatedName != null && updatedName.isNotEmpty) {

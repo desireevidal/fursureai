@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../constants/app_constants.dart';
+import '../theme/app_radius.dart';
+import '../theme/app_spacing.dart';
 import 'app_page.dart';
 import 'screen_header.dart';
 
@@ -18,6 +20,8 @@ class BrandedPage extends StatelessWidget {
     this.hasBottomNav = false,
     this.horizontalPadding = true,
     this.actions,
+    this.showSurfaceCap = false,
+    this.useGradientHeader = false,
   });
 
   final String title;
@@ -26,9 +30,14 @@ class BrandedPage extends StatelessWidget {
   final bool hasBottomNav;
   final bool horizontalPadding;
   final List<Widget>? actions;
+  final bool showSurfaceCap;
+  final bool useGradientHeader;
 
   @override
   Widget build(BuildContext context) {
+    final overlap = context.radius.xl.topLeft.x;
+    final inset = context.spacing.sm;
+    final surfaceColor = Theme.of(context).colorScheme.surface;
     final body = horizontalPadding
         ? Padding(
             padding: EdgeInsets.symmetric(
@@ -47,8 +56,30 @@ class BrandedPage extends StatelessWidget {
             title: title,
             showBackButton: showBackButton,
             actions: actions,
+            bottomInset: showSurfaceCap ? overlap : 0,
+            useGradient: useGradientHeader,
           ),
-          Expanded(child: body),
+          Expanded(
+            child: showSurfaceCap
+                ? Transform.translate(
+                    offset: Offset(0, -overlap),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: surfaceColor,
+                        borderRadius: BorderRadius.only(
+                          topLeft: context.radius.xxl.topLeft,
+                          topRight: context.radius.xxl.topRight,
+                        ),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: Padding(
+                        padding: EdgeInsets.only(top: inset),
+                        child: body,
+                      ),
+                    ),
+                  )
+                : body,
+          ),
         ],
       ),
     );

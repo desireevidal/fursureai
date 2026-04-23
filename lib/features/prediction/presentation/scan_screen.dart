@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'package:fursure/core/widgets/app_cat_name_dialog.dart';
+import 'package:fursure/core/widgets/app_confirmation_dialog.dart';
 import 'package:fursure/features/results/presentation/results_controller.dart';
 import 'scan_prediction_controller.dart';
 import 'scan_session.dart';
@@ -77,28 +79,37 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     });
   }
 
+  Future<void> _handlePreviewNo() async {
+    final shouldRerecord = await showAppConfirmationDialog(
+      context,
+      title: 'Rerecord meow?',
+      message: 'Would you like to rerecord the meow for this cat?',
+      cancelLabel: 'Take Pic Again',
+      confirmLabel: 'Rerecord',
+    );
+
+    if (!mounted) return;
+
+    if (shouldRerecord == true) {
+      setState(() {
+        _session = _session.copyWith(
+          clearAudioPath: true,
+          clearPendingRecord: true,
+        );
+        _step = ScanStep.audio;
+      });
+      return;
+    }
+
+    if (shouldRerecord == false) {
+      _retake();
+    }
+  }
+
   Future<void> _editCatName() async {
-    final controller = TextEditingController(text: _session.catName);
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Cat name'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          textCapitalization: TextCapitalization.words,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, controller.text),
-            child: const Text('Save'),
-          ),
-        ],
-      ),
+    final result = await showAppCatNameDialog(
+      context,
+      initialName: _session.catName,
     );
     if (result != null && result.trim().isNotEmpty) {
       final trimmedName = result.trim();
@@ -119,6 +130,20 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     if (mounted) context.go('/history');
   }
 
+  Future<void> _confirmDiscardResult() async {
+    final shouldDiscard = await showAppConfirmationDialog(
+      context,
+      title: 'Discard Result?',
+      message: 'This result will be discarded if you leave without saving it.',
+      cancelLabel: 'Keep Result',
+      confirmLabel: 'Discard',
+    );
+
+    if (shouldDiscard == true && mounted) {
+      _retake();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return switch (_step) {
@@ -135,7 +160,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
         selectedImage: _session.selectedImage,
         audioPath: _session.audioPath,
         onConfirm: _onConfirmPreview,
-        onRetake: _retake,
+        onRetake: _handlePreviewNo,
         onBack: () => setState(() => _step = ScanStep.audio),
       ),
       ScanStep.loading => const ScanLoadingStep(),
@@ -145,7 +170,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
         predictionResult: ref.watch(scanPredictionControllerProvider).asData?.value,
         onEditName: _editCatName,
         onSave: _saveAndDone,
-        onCancel: _retake,
+        onCancel: _confirmDiscardResult,
       ),
     };
   }

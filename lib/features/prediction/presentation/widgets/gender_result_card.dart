@@ -5,6 +5,7 @@ import 'package:fursure/core/theme/app_spacing.dart';
 import 'package:fursure/core/theme/brand_colors.dart';
 import 'package:fursure/core/widgets/label.dart';
 import 'package:fursure/features/prediction/data/gender_result.dart';
+import 'prediction_info_sheet.dart';
 
 class GenderResultCard extends StatelessWidget {
   const GenderResultCard({super.key, required this.result});
@@ -39,20 +40,8 @@ class GenderResultCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Label('Gender', variant: LabelVariant.h3),
-              Row(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    size: 15,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  SizedBox(width: context.spacing.xs),
-                  Label(
-                    'Accuracy: $accuracyPct%',
-                    variant: LabelVariant.caption,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ],
+              PredictionInfoBadge(
+                accuracyText: 'Accuracy: $accuracyPct%',
               ),
             ],
           ),

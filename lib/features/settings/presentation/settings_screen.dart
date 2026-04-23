@@ -197,10 +197,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       title: 'Settings',
       hasBottomNav: true,
       horizontalPadding: false,
+      showSurfaceCap: true,
+      useGradientHeader: true,
       child: ListView(
         padding: EdgeInsets.symmetric(horizontal: lo.screenPadH),
         children: [
-          const _SectionHeader(title: 'Appearance'),
+          const _SectionHeader(title: 'Appearance', topSpacing: 8),
           _SettingsCard(
             children: [
               _ThemeModeTile(
@@ -369,16 +371,23 @@ class _ThemeModeTile extends StatelessWidget {
 }
 
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title});
+  const _SectionHeader({
+    required this.title,
+    this.topSpacing,
+  });
 
   final String title;
+  final double? topSpacing;
 
   @override
   Widget build(BuildContext context) {
     final spacing = context.spacing;
 
     return Padding(
-      padding: EdgeInsets.only(top: spacing.lg, bottom: spacing.sm),
+      padding: EdgeInsets.only(
+        top: topSpacing ?? spacing.lg,
+        bottom: spacing.sm,
+      ),
       child: Label(title, variant: LabelVariant.title, weight: FontWeight.w700),
     );
   }

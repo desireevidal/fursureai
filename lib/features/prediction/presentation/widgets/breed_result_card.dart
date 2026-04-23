@@ -6,6 +6,7 @@ import 'package:fursure/core/theme/brand_colors.dart';
 import 'package:fursure/core/widgets/label.dart';
 import 'package:fursure/features/breed_info/data/breed_info.dart';
 import 'package:fursure/features/prediction/data/breed_result.dart';
+import 'prediction_info_sheet.dart';
 
 class BreedResultCard extends StatelessWidget {
   const BreedResultCard({super.key, required this.result});
@@ -35,20 +36,9 @@ class BreedResultCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Label('Breeds', variant: LabelVariant.h3),
-              Row(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    size: 15,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  SizedBox(width: context.spacing.xs),
-                  Label(
+              PredictionInfoBadge(
+                accuracyText:
                     'Accuracy: ${(result.confidence * 100).toStringAsFixed(2)}%',
-                    variant: LabelVariant.caption,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ],
               ),
             ],
           ),

@@ -13,11 +13,41 @@ class AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final lo = context.layout;
+    final surface = Theme.of(context).colorScheme.surface;
+    final brand = context.brand;
+
     return Scaffold(
       extendBody: true,
       body: Stack(
         children: [
           Positioned.fill(child: navigationShell),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: lo.navBarTotalHeight + 96,
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    stops: const [0.0, 0.58, 0.82, 1.0],
+                    colors: [
+                      surface.withValues(alpha: 0.00),
+                      surface.withValues(alpha: 0.28),
+                      surface.withValues(alpha: 0.72),
+                      Color.alphaBlend(
+                        brand.purple.withValues(alpha: 0.10),
+                        surface.withValues(alpha: 0.96),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
           Positioned(
             left: 0,
             right: 0,

@@ -29,88 +29,128 @@ class BreedInfoScreen extends StatelessWidget {
     final spacing = context.spacing;
     final brand = context.brand;
     final onPrimary = theme.colorScheme.onPrimary;
+    final topPad = MediaQuery.paddingOf(context).top;
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      appBar: AppBar(
-        backgroundColor: brand.purple,
-        elevation: 0,
-        centerTitle: true,
-        automaticallyImplyLeading: false,
-        leading: AppBackButton(
-          onPressed: () => Navigator.of(context).pop(),
-          color: onPrimary,
-        ),
-        title: Label(
-          'About',
-          variant: LabelVariant.title,
-          color: onPrimary,
-          weight: FontWeight.w700,
-          uppercase: false,
-        ),
-      ),
-      body: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+      body: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.fromLTRB(
+              0,
+              topPad + spacing.sm,
+              0,
+              spacing.sm,
+            ),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [brand.pink, brand.purple, brand.deepPurple],
+              ),
+            ),
+            child: Stack(
+              alignment: Alignment.center,
               children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: AppBackButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    color: onPrimary,
+                  ),
+                ),
+                Label(
+                  'About',
+                  variant: LabelVariant.title,
+                  color: onPrimary,
+                  weight: FontWeight.w700,
+                  uppercase: false,
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
                 AspectRatio(
                   aspectRatio: 16 / 10,
-                  child: Image.asset(
-                    info.imageAssetPath,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, _) => ColoredBox(
-                      color: theme.colorScheme.surfaceContainerHighest,
-                      child: Icon(
-                        Icons.image_not_supported_outlined,
-                        size: 48,
-                        color: theme.colorScheme.onSurfaceVariant,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [brand.pink, brand.purple, brand.deepPurple],
+                      ),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.only(
+                        topLeft: context.radius.xxl.topLeft,
+                        topRight: context.radius.xxl.topRight,
+                      ),
+                      child: Image.asset(
+                        info.imageAssetPath,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, _) => ColoredBox(
+                          color: theme.colorScheme.surfaceContainerHighest,
+                          child: Icon(
+                            Icons.image_not_supported_outlined,
+                            size: 48,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    spacing.lg,
-                    spacing.lg,
-                    spacing.lg,
-                    spacing.xl,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Label(
-                        info.name,
-                        variant: LabelVariant.h2,
-                        align: TextAlign.center,
-                        uppercase: false,
-                      ),
-                      SizedBox(height: spacing.lg),
-                      _BreedInfoDetailCard(
-                        icon: Icons.pets_rounded,
-                        title: 'Description',
-                        body: info.description,
-                      ),
-                      SizedBox(height: spacing.lg),
-                      _FactGroupCard(facts: info.facts),
-                      SizedBox(height: spacing.lg),
-                      _BreedInfoDetailCard(
-                        icon: Icons.health_and_safety_outlined,
-                        title: 'Health',
-                        body: info.health,
-                      ),
-                      SizedBox(height: spacing.m),
-                      _BreedInfoDetailCard(
-                        icon: Icons.brush_outlined,
-                        title: 'Grooming',
-                        body: info.grooming,
-                      ),
-                      SizedBox(height: spacing.m),
-                      _BreedInfoDetailCard(
-                        icon: Icons.restaurant_outlined,
-                        title: 'Nutrition',
-                        body: info.nutrition,
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          spacing.lg,
+                          spacing.lg,
+                          spacing.lg,
+                          spacing.xl,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Label(
+                              info.name,
+                              variant: LabelVariant.h2,
+                              align: TextAlign.center,
+                              uppercase: false,
+                            ),
+                            SizedBox(height: spacing.lg),
+                            _BreedInfoDetailCard(
+                              icon: Icons.pets_rounded,
+                              title: 'Description',
+                              body: info.description,
+                            ),
+                            SizedBox(height: spacing.lg),
+                            _FactGroupCard(facts: info.facts),
+                            SizedBox(height: spacing.lg),
+                            _BreedInfoDetailCard(
+                              icon: Icons.health_and_safety_outlined,
+                              title: 'Health',
+                              body: info.health,
+                            ),
+                            SizedBox(height: spacing.m),
+                            _BreedInfoDetailCard(
+                              icon: Icons.brush_outlined,
+                              title: 'Grooming',
+                              body: info.grooming,
+                            ),
+                            SizedBox(height: spacing.m),
+                            _BreedInfoDetailCard(
+                              icon: Icons.restaurant_outlined,
+                              title: 'Nutrition',
+                              body: info.nutrition,
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),

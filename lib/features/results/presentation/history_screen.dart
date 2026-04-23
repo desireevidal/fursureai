@@ -9,6 +9,7 @@ import 'package:fursure/core/theme/app_radius.dart';
 import 'package:fursure/core/theme/app_spacing.dart';
 import 'package:fursure/core/theme/brand_colors.dart';
 import 'package:fursure/core/widgets/app_back_button.dart';
+import 'package:fursure/core/widgets/app_confirmation_dialog.dart';
 import 'package:fursure/core/widgets/app_page.dart';
 import 'package:fursure/core/widgets/label.dart';
 import '../data/prediction_record.dart';
@@ -48,6 +49,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   Widget build(BuildContext context) {
     final resultsAsync = ref.watch(resultsControllerProvider);
     final lo = context.layout;
+    final overlap = context.radius.xl.topLeft.x;
+    final inset = context.spacing.sm;
+    final surfaceColor = Theme.of(context).colorScheme.surface;
 
     return AppPage(
       hasBottomNav: true,
@@ -71,62 +75,79 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             onDeleteSelected: _deleteSelected,
           ),
           Expanded(
-            child: resultsAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(
-                child: Label(
-                  'Failed to load history.',
-                  variant: LabelVariant.body,
-                  size: 16,
-                  color: Theme.of(context).colorScheme.error,
+            child: Transform.translate(
+              offset: Offset(0, -overlap),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: surfaceColor,
+                  borderRadius: BorderRadius.only(
+                    topLeft: context.radius.xxl.topLeft,
+                    topRight: context.radius.xxl.topRight,
+                  ),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Padding(
+                  padding: EdgeInsets.only(top: inset),
+                  child: resultsAsync.when(
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (e, _) => Center(
+                      child: Label(
+                        'Failed to load history.',
+                        variant: LabelVariant.body,
+                        size: 16,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                    data: (records) {
+                      if (records.isEmpty) return const _EmptyState();
+
+                      final breedOptions = _collectValues(
+                        records.map((record) => record.breed),
+                      );
+                      final genderOptions = _collectValues(
+                        records.map((record) => record.gender),
+                      );
+                      final filteredRecords = _applyFilters(records);
+
+                      return Column(
+                        children: [
+                          _FilterRow(
+                            breedOptions: breedOptions,
+                            genderOptions: genderOptions,
+                            selectedBreed: _selectedBreed,
+                            selectedGender: _selectedGender,
+                            sortMostRecent: _sortMostRecent,
+                            onSortChanged: (value) =>
+                                setState(() => _sortMostRecent = value),
+                            onBreedChanged: (value) =>
+                                setState(() => _selectedBreed = value),
+                            onGenderChanged: (value) =>
+                                setState(() => _selectedGender = value),
+                          ),
+                          if (_isSelectionMode)
+                            _SelectionActionBar(
+                              selectedCount: _selectedIds.length,
+                              onSelectAll: () => _selectAllVisible(filteredRecords),
+                              onClearSelection: _clearSelection,
+                            ),
+                          Expanded(
+                            child: filteredRecords.isEmpty
+                                ? const _NoMatchesState()
+                                : _HistoryGrid(
+                                    records: filteredRecords,
+                                    isSelectionMode: _isSelectionMode,
+                                    selectedIds: _selectedIds,
+                                    onToggleSelection: _toggleSelection,
+                                    onStartSelection: _startSelection,
+                                  ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
                 ),
               ),
-              data: (records) {
-                if (records.isEmpty) return const _EmptyState();
-
-                final breedOptions = _collectValues(
-                  records.map((record) => record.breed),
-                );
-                final genderOptions = _collectValues(
-                  records.map((record) => record.gender),
-                );
-                final filteredRecords = _applyFilters(records);
-
-                return Column(
-                  children: [
-                    _FilterRow(
-                      breedOptions: breedOptions,
-                      genderOptions: genderOptions,
-                      selectedBreed: _selectedBreed,
-                      selectedGender: _selectedGender,
-                      sortMostRecent: _sortMostRecent,
-                      onSortChanged: (value) =>
-                          setState(() => _sortMostRecent = value),
-                      onBreedChanged: (value) =>
-                          setState(() => _selectedBreed = value),
-                      onGenderChanged: (value) =>
-                          setState(() => _selectedGender = value),
-                    ),
-                    if (_isSelectionMode)
-                      _SelectionActionBar(
-                        selectedCount: _selectedIds.length,
-                        onSelectAll: () => _selectAllVisible(filteredRecords),
-                        onClearSelection: _clearSelection,
-                      ),
-                    Expanded(
-                      child: filteredRecords.isEmpty
-                          ? const _NoMatchesState()
-                          : _HistoryGrid(
-                              records: filteredRecords,
-                              isSelectionMode: _isSelectionMode,
-                              selectedIds: _selectedIds,
-                              onToggleSelection: _toggleSelection,
-                              onStartSelection: _startSelection,
-                            ),
-                    ),
-                  ],
-                );
-              },
             ),
           ),
           SizedBox(height: lo.navBarBottomGap),
@@ -214,26 +235,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     if (_selectedIds.isEmpty) return;
 
     final count = _selectedIds.length;
-    final shouldDelete = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete Pawfile'),
-        content: Text(
-          count == 1
-              ? 'This entry will be removed from My Clawlection.'
-              : '$count entries will be removed from My Clawlection.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final shouldDelete = await showAppConfirmationDialog(
+      context,
+      title: 'Delete Pawfile?',
+      message: count == 1
+          ? 'This entry will be removed from My Clawlection.'
+          : '$count entries will be removed from My Clawlection.',
+      confirmLabel: 'Delete',
     );
 
     if (shouldDelete != true) return;
@@ -612,13 +620,13 @@ class _EmptyState extends StatelessWidget {
           ),
           SizedBox(height: spacing.lg),
           const Label(
-            'No predictions yet',
+            'Your Clawlection is empty.',
             variant: LabelVariant.title,
             size: 22,
           ),
           SizedBox(height: spacing.sm),
           Label(
-            'Head to the Scan tab and analyse your first cat!',
+            'Click the camera button to start your Clawlection!',
             variant: LabelVariant.body,
             align: TextAlign.center,
             color: theme.colorScheme.onSurfaceVariant,
@@ -656,6 +664,7 @@ class _CollectionHeader extends StatelessWidget {
     final spacing = context.spacing;
     final topPad = MediaQuery.paddingOf(context).top;
     final lo = context.layout;
+    final bottomInset = context.radius.xl.topLeft.x;
 
     return Container(
       width: double.infinity,
@@ -663,7 +672,7 @@ class _CollectionHeader extends StatelessWidget {
         0,
         topPad + spacing.sm,
         0,
-        showSearch ? spacing.m : spacing.lg,
+        (showSearch ? spacing.m : spacing.lg) + bottomInset,
       ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -819,7 +828,7 @@ class _FilterRow extends StatelessWidget {
       scrollDirection: Axis.horizontal,
       padding: EdgeInsets.fromLTRB(
         lo.screenPadH,
-        spacing.m,
+        spacing.sm,
         lo.screenPadH,
         spacing.sm,
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:fursure/core/constants/app_constants.dart';
+import 'package:fursure/core/theme/app_radius.dart';
 import 'package:fursure/core/theme/app_spacing.dart';
 import 'package:fursure/core/theme/brand_colors.dart';
 import 'package:fursure/core/widgets/app_back_button.dart';
@@ -33,6 +34,7 @@ class PredictionStepLayout extends StatelessWidget {
 
     return AppPage(
       horizontalPadding: false,
+      backgroundColor: context.brand.purple,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -87,7 +89,14 @@ class PredictionStepLayout extends StatelessWidget {
           Expanded(
             flex: 30,
             child: Container(
-              color: Theme.of(context).colorScheme.surface,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.only(
+                  topLeft: context.radius.xxl.topLeft,
+                  topRight: context.radius.xxl.topRight,
+                ),
+              ),
+              clipBehavior: Clip.antiAlias,
               child: SafeArea(
                 top: false,
                 child: Padding(

@@ -17,11 +17,15 @@ class ScreenHeader extends StatelessWidget {
     required this.title,
     this.showBackButton = true,
     this.actions,
+    this.bottomInset = 0,
+    this.useGradient = false,
   });
 
   final String title;
   final bool showBackButton;
   final List<Widget>? actions;
+  final double bottomInset;
+  final bool useGradient;
 
   @override
   Widget build(BuildContext context) {
@@ -33,12 +37,21 @@ class ScreenHeader extends StatelessWidget {
       header: true,
       child: Container(
         width: double.infinity,
-        color: brand.purple,
+        decoration: BoxDecoration(
+          color: useGradient ? null : brand.purple,
+          gradient: useGradient
+              ? LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [brand.pink, brand.purple, brand.deepPurple],
+                )
+              : null,
+        ),
         padding: EdgeInsets.fromLTRB(
           0,
           topPad + context.spacing.sm,
           0,
-          context.spacing.sm,
+          context.spacing.sm + bottomInset,
         ),
         child: Stack(
           alignment: Alignment.center,
