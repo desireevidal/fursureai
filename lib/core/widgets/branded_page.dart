@@ -6,11 +6,7 @@ import '../theme/app_spacing.dart';
 import 'app_page.dart';
 import 'screen_header.dart';
 
-/// A page layout with a branded [ScreenHeader] fixed at the top.
-///
-/// Wraps [AppPage] internally to provide the [Scaffold], background colour,
-/// and bottom-nav [MediaQuery] clearance. The [child] is placed below the
-/// header inside an [Expanded] widget.
+/// Page layout with a fixed [ScreenHeader].
 class BrandedPage extends StatelessWidget {
   const BrandedPage({
     super.key,

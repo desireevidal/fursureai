@@ -16,6 +16,7 @@ class PredictionStepLayout extends StatelessWidget {
     required this.illustration,
     required this.actions,
     this.onBack,
+    this.trailing,
   });
 
   final String title;
@@ -23,6 +24,7 @@ class PredictionStepLayout extends StatelessWidget {
   final Widget illustration;
   final List<Widget> actions;
   final VoidCallback? onBack;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -51,9 +53,24 @@ class PredictionStepLayout extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  AppBackButton(
-                    onPressed: onBack ?? () => Navigator.of(context).maybePop(),
-                    color: onPrimary,
+                  Row(
+                    children: [
+                      AppBackButton(
+                        onPressed:
+                            onBack ?? () => Navigator.of(context).maybePop(),
+                        color: onPrimary,
+                      ),
+                      const Spacer(),
+                      if (trailing != null) ...[
+                        Padding(
+                          padding: EdgeInsets.only(
+                            right: lo.screenPadH,
+                            top: context.spacing.sm,
+                          ),
+                          child: trailing!,
+                        ),
+                      ],
+                    ],
                   ),
                   SizedBox(height: context.spacing.m),
                   Padding(

@@ -94,7 +94,7 @@ class _BreedRow extends StatelessWidget {
                     : Icon(Icons.pets, color: brand.purple, size: 24),
               ),
             ),
-            const SizedBox(width: 12), // spaceM — no token equivalent yet
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

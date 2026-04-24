@@ -11,6 +11,7 @@ import 'package:fursure/core/widgets/buttons.dart';
 import 'package:fursure/providers/app_providers.dart';
 import 'package:fursure/features/prediction/data/prediction_constants.dart';
 import 'prediction_step_layout.dart';
+import 'scan_tips_sheet.dart';
 
 class ScanAudioRecorder extends ConsumerStatefulWidget {
   const ScanAudioRecorder({
@@ -136,6 +137,12 @@ class _ScanAudioRecorderState extends ConsumerState<ScanAudioRecorder>
             )
           : illustration,
       onBack: widget.onBack,
+      trailing: ScanTipsButton(
+        onTap: () => showScanTipsSheet(
+          context,
+          type: ScanTipsType.meow,
+        ),
+      ),
       actions: [
         Button(
           label: _isRecording ? 'Stop Recording' : 'Start Recording',

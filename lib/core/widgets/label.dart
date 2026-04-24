@@ -3,56 +3,40 @@ import 'package:flutter/material.dart';
 import '../theme/app_text_styles.dart';
 import '../theme/brand_colors.dart';
 
-/// Semantic typography variants.
-///
-/// Each variant maps to a [TextStyle] in [AppTextStyles] and a default color
-/// resolved from the current [ColorScheme] or [BrandColors].
+/// Typography variants used by [Label].
 enum LabelVariant {
-  /// Large screen heading — 36px bold (onboarding titles, scan headings).
+  /// Large screen heading.
   h1,
 
-  /// Medium heading — 32px bold (permission title, cat name).
+  /// Medium heading.
   h2,
 
-  /// Small heading — 18px bold (card section titles).
+  /// Small heading.
   h3,
 
-  /// Emphasized body — 16px semi-bold (list-item titles, card titles).
+  /// Emphasized body text.
   title,
 
-  /// Secondary text below headings — 15px regular.
+  /// Secondary text below headings.
   subtitle,
 
-  /// Standard body copy — 14px regular.
+  /// Standard body copy.
   body,
 
-  /// Field labels and item names — 14px medium.
+  /// Field labels and item names.
   label,
 
-  /// Small metadata text — 13px (timestamps, accuracy).
+  /// Small metadata text.
   caption,
 
-  /// Tiny uppercase badge / chip — 12px bold, letter-spaced.
+  /// Small badge text.
   tag,
 
-  /// Button label — 16px semi-bold, uppercase, letter-spaced.
+  /// Button label.
   button,
 }
 
-/// A design-system text widget that resolves its style from the current theme.
-///
-/// ```dart
-/// Label('Screen Title', variant: LabelVariant.h1)
-/// Label('Details', variant: LabelVariant.body, color: colorScheme.onSurfaceVariant)
-/// Label('BREED', variant: LabelVariant.tag)
-/// ```
-///
-/// The base font metrics come from [AppTextStyles] (a [ThemeExtension]).
-/// Color is resolved per-variant from [ColorScheme] / [BrandColors], unless
-/// the caller provides an explicit [color] override.
-///
-/// Optional parameters ([size], [weight], [height], [letterSpacing]) are
-/// applied on top of the base style via [TextStyle.copyWith].
+/// Shared text widget that resolves styles from the current theme.
 class Label extends StatelessWidget {
   const Label(
     this.text, {
@@ -71,46 +55,20 @@ class Label extends StatelessWidget {
     this.semanticsLabel,
   });
 
-  /// The text to display.
   final String text;
 
-  /// Semantic variant that determines base font metrics and default color.
   final LabelVariant variant;
 
-  // ── Optional overrides ───────────────────────────────────────────────────
-
-  /// Overrides the default color resolved from the theme.
   final Color? color;
-
-  /// Overrides font size.
   final double? size;
-
-  /// Overrides font weight.
   final FontWeight? weight;
-
-  /// Overrides line height.
   final double? height;
-
-  /// Overrides letter spacing.
   final double? letterSpacing;
-
-  /// Overrides font style (normal / italic).
   final FontStyle? fontStyle;
-
-  /// Maximum number of lines before truncation.
   final int? maxLines;
-
-  /// How overflowing text is handled.
   final TextOverflow? overflow;
-
-  /// Text alignment.
   final TextAlign? align;
-
-  /// Forces uppercase rendering. Defaults to `true` for [LabelVariant.tag]
-  /// and [LabelVariant.button], `false` for all others.
   final bool? uppercase;
-
-  /// Semantic label for accessibility (passed to [Text.semanticsLabel]).
   final String? semanticsLabel;
 
   @override
@@ -146,7 +104,6 @@ class Label extends StatelessWidget {
     );
   }
 
-  /// Returns the base [TextStyle] for the current [variant].
   TextStyle _resolveBaseStyle(AppTextStyles styles) {
     return switch (variant) {
       LabelVariant.h1 => styles.h1,
@@ -162,7 +119,6 @@ class Label extends StatelessWidget {
     };
   }
 
-  /// Returns the default color for the current [variant] based on the theme.
   Color _resolveDefaultColor(ColorScheme colorScheme, BrandColors brand) {
     return switch (variant) {
       LabelVariant.h1 ||

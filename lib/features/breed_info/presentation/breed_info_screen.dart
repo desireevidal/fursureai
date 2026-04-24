@@ -93,7 +93,7 @@ class BreedInfoScreen extends StatelessWidget {
                         topRight: context.radius.xxl.topRight,
                       ),
                       child: Image.asset(
-                        info.imageAssetPath,
+                        info.heroImageAssetPath,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, _) => ColoredBox(
                           color: theme.colorScheme.surfaceContainerHighest,

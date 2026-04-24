@@ -1,19 +1,15 @@
 import 'package:flutter/material.dart';
 
-/// Container for [StatefulShellRoute] branch navigators that provides
-/// directional slide + fade transitions when switching branches.
+/// Shows shell branches with a slide and fade transition.
 class AnimatedBranchContainer extends StatefulWidget {
-  /// Creates an [AnimatedBranchContainer].
   const AnimatedBranchContainer({
     super.key,
     required this.currentIndex,
     required this.children,
   });
 
-  /// The index (in [children]) of the branch navigator to display.
   final int currentIndex;
 
-  /// The branch navigator widgets to display in this container.
   final List<Widget> children;
 
   @override
@@ -29,7 +25,6 @@ class _AnimatedBranchContainerState extends State<AnimatedBranchContainer>
   late final List<AnimationController> _controllers;
   late final List<CurvedAnimation> _curved;
 
-  // Track previous index to determine slide direction.
   int? _previousIndex;
 
   @override
@@ -83,17 +78,11 @@ class _AnimatedBranchContainerState extends State<AnimatedBranchContainer>
     );
   }
 
-  /// Returns `true` when the branch at [index] should slide from the right,
-  /// `false` when it should slide from the left.
   bool _slideDirection(int index) {
     final int previous = _previousIndex ?? 0;
     return index > previous;
   }
 }
-
-// ── Branch transition ───────────────────────────────────────────────────────
-
-/// Animates a single branch navigator with a directional slide + fade.
 class _BranchTransition extends StatelessWidget {
   const _BranchTransition({
     required this.animation,
@@ -109,8 +98,6 @@ class _BranchTransition extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Slide offset: incoming branch slides from +0.15 or -0.15 to 0.
-    // Outgoing branch slides from 0 to -0.15 or +0.15.
     final double direction = slideFromRight ? 1.0 : -1.0;
     final Tween<Offset> slideTween = Tween<Offset>(
       begin: Offset(direction * 0.15, 0.0),

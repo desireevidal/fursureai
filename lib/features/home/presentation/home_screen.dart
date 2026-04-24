@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:fursure/core/constants/app_constants.dart';
@@ -10,6 +11,8 @@ import 'package:fursure/core/widgets/fab_reveal_transition.dart';
 import 'package:fursure/core/widgets/label.dart';
 import 'package:fursure/features/breed_info/data/breed_info.dart';
 import 'package:fursure/features/breed_info/presentation/breed_info_screen.dart';
+import 'package:fursure/features/home/presentation/widgets/first_use_guide.dart';
+import 'package:fursure/providers/app_providers.dart';
 
 abstract final class _HomeLayout {
   static double heroBackdropHeight(double screenH) =>
@@ -18,8 +21,35 @@ abstract final class _HomeLayout {
       (screenW * 0.47).clamp(120.0, 200.0);
 }
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  bool _guideCheckStarted = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_guideCheckStarted) return;
+    _guideCheckStarted = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _showGuideIfNeeded());
+  }
+
+  Future<void> _showGuideIfNeeded() async {
+    final onboarding = ref.read(onboardingServiceProvider);
+    final hasSeenGuide = await onboarding.hasSeenFirstUseGuide();
+    if (hasSeenGuide || !mounted) return;
+
+    await Future<void>.delayed(const Duration(milliseconds: 180));
+    if (!mounted) return;
+
+    await showFirstUseGuide(context);
+    await onboarding.markFirstUseGuideSeen();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,8 +107,6 @@ class HomeScreen extends StatelessWidget {
     );
   }
 }
-
-// ── Hero ─────────────────────────────────────────────────────────────────────
 
 class _HeroBackdrop extends StatelessWidget {
   const _HeroBackdrop({required this.screenW});
@@ -163,7 +191,7 @@ class _HeroSection extends StatelessWidget {
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
           child: Label(
-            'Take one clear photo, add a meow if you want extra context, '
+            'Take one clear photo, add a meow, '
             'and get a polished breed and gender readout.',
             variant: LabelVariant.subtitle,
             color: Colors.white.withValues(alpha: 0.86),
@@ -357,8 +385,6 @@ class _HeroScanCard extends StatelessWidget {
   }
 }
 
-// ── Content Surface ──────────────────────────────────────────────────────────
-
 class _ContentSurface extends StatelessWidget {
   const _ContentSurface();
 
@@ -402,8 +428,6 @@ class _ContentSurface extends StatelessWidget {
   }
 }
 
-// ── Breed section ────────────────────────────────────────────────────────────
-
 class _BreedSection extends StatelessWidget {
   const _BreedSection();
 
@@ -421,28 +445,28 @@ class _BreedSection extends StatelessWidget {
     final spacing = context.spacing;
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Label(
-          'Cat breeds',
-          variant: LabelVariant.h3,
-          uppercase: false,
-        ),
-        SizedBox(height: spacing.sm),
-        Label(
-          'Explore breed profiles, traits, and care details.',
-          variant: LabelVariant.caption,
-          height: 1.4,
-          uppercase: false,
-        ),
-        SizedBox(height: spacing.m),
-        Column(
-          children: _breedInfos
-              .map((BreedInfo info) => _BreedTile(info: info))
-              .toList(),
-        ),
-      ],
-    );
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Label(
+            'Cat breeds',
+            variant: LabelVariant.h3,
+            uppercase: false,
+          ),
+          SizedBox(height: spacing.sm),
+          Label(
+            'Explore breed profiles, traits, and care details.',
+            variant: LabelVariant.caption,
+            height: 1.4,
+            uppercase: false,
+          ),
+          SizedBox(height: spacing.m),
+          Column(
+            children: _breedInfos
+                .map((BreedInfo info) => _BreedTile(info: info))
+                .toList(),
+          ),
+        ],
+      );
   }
 }
 

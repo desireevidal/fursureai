@@ -4,14 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'screen_tier.dart';
 
-/// Theme-owned spacing tokens.
-///
-/// Registered as a [ThemeExtension] so spacing stays consistent across
-/// the app and responds to theme changes.
-///
-/// Scale: xs=4, sm=8, m=16, lg=24, xl=32, xxl=40
-///
-/// Access via `context.spacing.m`.
+/// Spacing tokens used across the app.
 class AppSpacing extends ThemeExtension<AppSpacing> {
   const AppSpacing({
     this.xs = 4,
@@ -62,10 +55,7 @@ class AppSpacing extends ThemeExtension<AppSpacing> {
   }
 }
 
-/// Convenience accessor so widgets can write `context.spacing.m`.
-///
-/// Returns tier-scaled values so all existing `context.spacing.*` calls
-/// become responsive without any call-site changes.
+/// Access spacing tokens from the current context.
 extension AppSpacingContext on BuildContext {
   AppSpacing get spacing {
     final base = Theme.of(this).extension<AppSpacing>()!;

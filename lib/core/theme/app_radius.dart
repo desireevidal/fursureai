@@ -2,14 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'screen_tier.dart';
 
-/// Theme-owned border-radius tokens.
-///
-/// Registered as a [ThemeExtension] so radius values stay consistent
-/// across the app and can be overridden per-theme if needed.
-///
-/// Scale mirrors AppSpacing: xs=4, sm=8, m=16, lg=24, xl=32, xxl=40
-///
-/// Access via `context.radius.m`.
+/// Border-radius tokens used across the app.
 class AppRadius extends ThemeExtension<AppRadius> {
   const AppRadius({
     this.xs = const BorderRadius.all(Radius.circular(4)),
@@ -60,9 +53,7 @@ class AppRadius extends ThemeExtension<AppRadius> {
   }
 }
 
-/// Convenience accessor so widgets can write `context.radius.m`.
-///
-/// Returns tier-scaled values so radii adapt to screen size automatically.
+/// Access radius tokens from the current context.
 extension AppRadiusContext on BuildContext {
   AppRadius get radius {
     final base = Theme.of(this).extension<AppRadius>()!;

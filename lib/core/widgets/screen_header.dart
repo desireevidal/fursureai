@@ -6,11 +6,7 @@ import '../theme/brand_colors.dart';
 import 'app_back_button.dart';
 import 'label.dart';
 
-/// Branded purple header bar used at the top of feature screens.
-///
-/// Renders a full-bleed [BrandColors.purple] container with a centered [title],
-/// an optional [AppBackButton] on the left, and optional [actions] on the right.
-/// Safe-area top inset is handled internally.
+/// Header bar used at the top of feature screens.
 class ScreenHeader extends StatelessWidget {
   const ScreenHeader({
     super.key,

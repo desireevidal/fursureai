@@ -51,8 +51,6 @@ final startupServiceProvider = Provider<StartupService>(
   (ref) => StartupService(),
 );
 
-// ── TFLite interpreter instances (one per model to avoid shared state) ───────
-
 final breedTfliteServiceProvider = Provider<TfliteService>((ref) {
   final service = TfliteService();
   ref.onDispose(service.dispose);
@@ -65,8 +63,6 @@ final genderTfliteServiceProvider = Provider<TfliteService>((ref) {
   return service;
 });
 
-// ── Inference runners ─────────────────────────────────────────────────────────
-
 final breedInferenceRunnerProvider = Provider<InferenceRunner>(
   (ref) => InferenceRunner(ref.watch(breedTfliteServiceProvider)),
 );
@@ -74,8 +70,6 @@ final breedInferenceRunnerProvider = Provider<InferenceRunner>(
 final genderInferenceRunnerProvider = Provider<InferenceRunner>(
   (ref) => InferenceRunner(ref.watch(genderTfliteServiceProvider)),
 );
-
-// ── Preprocessors ─────────────────────────────────────────────────────────────
 
 final imagePreprocessorProvider = Provider<ImagePreprocessor>(
   (ref) => const ImagePreprocessor(),
@@ -85,8 +79,6 @@ final audioPreprocessorProvider = Provider<AudioPreprocessor>(
   (ref) => const AudioPreprocessor(),
 );
 
-// ── Camera / audio ────────────────────────────────────────────────────────────
-
 final cameraServiceProvider = Provider<CameraService>((ref) => CameraService());
 
 final audioServiceProvider = Provider<AudioService>((ref) {
@@ -94,8 +86,6 @@ final audioServiceProvider = Provider<AudioService>((ref) {
   ref.onDispose(service.dispose);
   return service;
 });
-
-// ── Repositories ──────────────────────────────────────────────────────────────
 
 final breedRepositoryProvider = Provider<BreedRepository>(
   (ref) => BreedRepository(
@@ -121,8 +111,6 @@ final placeholderBreedRepositoryProvider = Provider<PlaceholderBreedRepository>(
 
 final placeholderGenderRepositoryProvider =
     Provider<PlaceholderGenderRepository>((_) => PlaceholderGenderRepository());
-
-// ── Misc ──────────────────────────────────────────────────────────────────────
 
 final appVersionProvider = FutureProvider<String>((ref) async {
   final info = await PackageInfo.fromPlatform();

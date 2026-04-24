@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fursure/core/theme/brand_colors.dart';
 import 'package:fursure/core/widgets/buttons.dart';
 import 'prediction_step_layout.dart';
+import 'scan_tips_sheet.dart';
 
 class ScanPhotoStep extends StatelessWidget {
   const ScanPhotoStep({
@@ -27,6 +28,12 @@ class ScanPhotoStep extends StatelessWidget {
           'Make sure we can see their adorable\nfeatures nice and clear!',
       illustration: SvgPicture.asset('assets/images/breed_illustration.svg'),
       onBack: onBack,
+      trailing: ScanTipsButton(
+        onTap: () => showScanTipsSheet(
+          context,
+          type: ScanTipsType.photo,
+        ),
+      ),
       actions: [
         Button(
           label: 'Take Photo',

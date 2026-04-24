@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Theme-aware brand colors.
-///
-/// Access via `Theme.of(context).extension<BrandColors>()!` or the
-/// convenience getter `context.brand`.
-///
-/// Light and dark instances are registered in [AppTheme].
+/// App brand colors.
 class BrandColors extends ThemeExtension<BrandColors> {
   const BrandColors({
     required this.purple,
@@ -21,7 +16,6 @@ class BrandColors extends ThemeExtension<BrandColors> {
   final Color softRed;
   final List<Color> gradient;
 
-  // ── Light palette ─────────────────────────────────────────────────────────
   static const light = BrandColors(
     purple: Color(0xFF7E1891),
     pink: Color(0xFFE73879),
@@ -30,7 +24,6 @@ class BrandColors extends ThemeExtension<BrandColors> {
     gradient: [Color(0xFFE73879), Color(0xFF911880)],
   );
 
-  // ── Dark palette (pastel) ─────────────────────────────────────────────────
   static const dark = BrandColors(
     purple: Color(0xFFA040B8),
     pink: Color(0xFFEF6090),
@@ -72,7 +65,7 @@ class BrandColors extends ThemeExtension<BrandColors> {
   }
 }
 
-/// Convenience accessor so widgets can write `context.brand.purple`.
+/// Access brand colors from the current context.
 extension BrandColorsContext on BuildContext {
   BrandColors get brand => Theme.of(this).extension<BrandColors>()!;
 }

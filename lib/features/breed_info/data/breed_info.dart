@@ -5,6 +5,7 @@ class BreedInfo {
     required this.id,
     required this.name,
     required this.imageAssetPath,
+    required this.heroImageAssetPath,
     this.thumbnailAlignment = Alignment.center,
     this.thumbnailScale = 1,
     required this.description,
@@ -17,6 +18,7 @@ class BreedInfo {
   final String id;
   final String name;
   final String imageAssetPath;
+  final String heroImageAssetPath;
   final Alignment thumbnailAlignment;
   final double thumbnailScale;
   final String description;
@@ -39,9 +41,10 @@ class BreedFact {
 const BreedInfo domesticShorthairBreedInfo = BreedInfo(
   id: 'domesticshorthair',
   name: 'Domestic Shorthair',
-  imageAssetPath: 'assets/images/breed_info/domestic_shorthair.jpg',
-  thumbnailAlignment: Alignment(0.02, -0.08),
-  thumbnailScale: 1.55,
+  imageAssetPath: 'assets/images/breed_info_cropped/domestic_shorthair_cropped.jpg',
+  heroImageAssetPath: 'assets/images/breed_info/domestic_shorthair.jpg',
+  thumbnailAlignment: Alignment.center,
+  thumbnailScale: 1,
   description:
       'Domestic Shorthair cats are friendly, adaptable, and easy-going. '
       'They are playful and enjoy interactive toys, but can also relax '
@@ -76,9 +79,10 @@ const BreedInfo domesticShorthairBreedInfo = BreedInfo(
 const BreedInfo siameseBreedInfo = BreedInfo(
   id: 'siamese',
   name: 'Siamese',
-  imageAssetPath: 'assets/images/breed_info/siamese.jpg',
-  thumbnailAlignment: Alignment(1.0, -0.12),
-  thumbnailScale: 2.15,
+  imageAssetPath: 'assets/images/breed_info_cropped/siamese_cropped.jpg',
+  heroImageAssetPath: 'assets/images/breed_info/siamese.jpg',
+  thumbnailAlignment: Alignment.center,
+  thumbnailScale: 1,
   description:
       'Siamese cats are elegant, social, and intelligent. They are playful, '
       'affectionate, and highly interactive; they thrive with attention and '
@@ -108,9 +112,10 @@ const BreedInfo siameseBreedInfo = BreedInfo(
 const BreedInfo persianBreedInfo = BreedInfo(
   id: 'persian',
   name: 'Persian',
-  imageAssetPath: 'assets/images/breed_info/persian.jpg',
-  thumbnailAlignment: Alignment(0.02, -0.06),
-  thumbnailScale: 1.65,
+  imageAssetPath: 'assets/images/breed_info_cropped/persian_cropped.jpg',
+  heroImageAssetPath: 'assets/images/breed_info/persian.jpg',
+  thumbnailAlignment: Alignment.center,
+  thumbnailScale: 1,
   description:
       'Persian cats are gentle, calm, and affectionate. They are ideal for '
       'quiet homes. They are known for their luxurious long coat, round face, '
@@ -137,9 +142,10 @@ const BreedInfo persianBreedInfo = BreedInfo(
 const BreedInfo maineCoonBreedInfo = BreedInfo(
   id: 'mainecoon',
   name: 'Maine Coon',
-  imageAssetPath: 'assets/images/breed_info/maine_coon.jpg',
-  thumbnailAlignment: Alignment(0.1, -0.12),
-  thumbnailScale: 1.72,
+  imageAssetPath: 'assets/images/breed_info_cropped/maine_coon_cropped.jpg',
+  heroImageAssetPath: 'assets/images/breed_info/maine_coon.jpg',
+  thumbnailAlignment: Alignment.center,
+  thumbnailScale: 1,
   description:
       'Maine Coon cats are gentle, friendly, and affectionate "gentle '
       'giants." They are social but independent, and they enjoy following '
@@ -172,9 +178,10 @@ const BreedInfo maineCoonBreedInfo = BreedInfo(
 const BreedInfo russianBlueBreedInfo = BreedInfo(
   id: 'russianblue',
   name: 'Russian Blue',
-  imageAssetPath: 'assets/images/breed_info/russian_blue.jpg',
-  thumbnailAlignment: Alignment(-0.72, -0.08),
-  thumbnailScale: 1.95,
+  imageAssetPath: 'assets/images/breed_info_cropped/russian_blue_cropped.jpg',
+  heroImageAssetPath: 'assets/images/breed_info/russian_blue.jpg',
+  thumbnailAlignment: Alignment.center,
+  thumbnailScale: 1,
   description:
       'Russian Blues are elegant, intelligent, and affectionate cats with a '
       'quiet but communicative nature. They tend to be reserved with '
@@ -213,9 +220,10 @@ const BreedInfo russianBlueBreedInfo = BreedInfo(
 const BreedInfo bombayBreedInfo = BreedInfo(
   id: 'bombay',
   name: 'Bombay',
-  imageAssetPath: 'assets/images/breed_info/bombay.jpg',
-  thumbnailAlignment: Alignment(0, -0.1),
-  thumbnailScale: 1.8,
+  imageAssetPath: 'assets/images/breed_info_cropped/bombay_cropped.jpg',
+  heroImageAssetPath: 'assets/images/breed_info/bombay.jpg',
+  thumbnailAlignment: Alignment.center,
+  thumbnailScale: 1,
   description:
       'Bombay cats are affectionate, social, and playful "mini-panther" '
       'cats. They love human company, greet family members at the door, and '

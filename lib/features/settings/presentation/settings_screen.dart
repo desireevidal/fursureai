@@ -498,7 +498,6 @@ class _ExportChoiceSheet extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Drag handle
             Center(
               child: Container(
                 width: 32,
@@ -510,7 +509,6 @@ class _ExportChoiceSheet extends StatelessWidget {
               ),
             ),
             SizedBox(height: spacing.lg),
-            // Header
             Align(
               alignment: Alignment.centerLeft,
               child: Column(
@@ -531,7 +529,6 @@ class _ExportChoiceSheet extends StatelessWidget {
               ),
             ),
             SizedBox(height: spacing.m),
-            // Option cards
             _ExportOptionTile(
               icon: Icons.save_alt_outlined,
               gradient: brand.gradient,
@@ -548,7 +545,6 @@ class _ExportChoiceSheet extends StatelessWidget {
               onTap: () => Navigator.of(context).pop(_ExportChoice.share),
             ),
             SizedBox(height: spacing.m),
-            // Cancel
             SizedBox(
               width: double.infinity,
               child: TextButton(
