@@ -6,6 +6,7 @@ import 'package:fursure/core/theme/brand_colors.dart';
 import 'package:fursure/core/widgets/label.dart';
 import 'package:fursure/features/breed_info/data/breed_info.dart';
 import 'package:fursure/features/prediction/data/breed_result.dart';
+
 import 'prediction_info_sheet.dart';
 
 class BreedResultCard extends StatelessWidget {
@@ -16,6 +17,7 @@ class BreedResultCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -43,7 +45,19 @@ class BreedResultCard extends StatelessWidget {
             ],
           ),
           SizedBox(height: context.spacing.m),
-          _BreedRow(breed: result.breed, confidence: result.confidence),
+
+          _BreedRow(
+            breed: result.breed,
+            confidence: result.confidence,
+          ),
+
+          if (result.shouldShowSecondary) ...[
+            SizedBox(height: context.spacing.m),
+            _SecondaryBreedMatch(
+              breed: result.secondaryBreed!,
+              confidence: result.secondaryConfidence!,
+            ),
+          ],
         ],
       ),
     );
@@ -51,7 +65,10 @@ class BreedResultCard extends StatelessWidget {
 }
 
 class _BreedRow extends StatelessWidget {
-  const _BreedRow({required this.breed, required this.confidence});
+  const _BreedRow({
+    required this.breed,
+    required this.confidence,
+  });
 
   final String breed;
   final double confidence;
@@ -133,6 +150,46 @@ class _BreedRow extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _SecondaryBreedMatch extends StatelessWidget {
+  const _SecondaryBreedMatch({
+    required this.breed,
+    required this.confidence,
+  });
+
+  final String breed;
+  final double confidence;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final spacing = context.spacing;
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(spacing.m),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
+        borderRadius: context.radius.m,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Label(
+            'Possible secondary match',
+            variant: LabelVariant.body,
+            weight: FontWeight.w600,
+          ),
+          SizedBox(height: spacing.xs),
+          Label(
+            '$breed • ${(confidence * 100).toStringAsFixed(0)}%',
+            variant: LabelVariant.body,
+          ),
+        ],
+      ),
     );
   }
 }
