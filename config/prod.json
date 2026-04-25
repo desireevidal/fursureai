@@ -1,7 +1,7 @@
 {
   "USE_PLACEHOLDERS": "false",
-  "BREED_MODEL_URL": "",
-  "GENDER_MODEL_URL": "",
+  "BREED_MODEL_URL": "https://drive.google.com/uc?export=download&id=14Yby3dSDw96KBR8uU6gq2cxXiSPU9pyo",
   "BREED_MODEL_SHA256": "",
+  "GENDER_MODEL_URL": "https://drive.google.com/uc?export=download&id=1XU6V_AwRPEOMrckII54iHL6Qv3WdQWXq",
   "GENDER_MODEL_SHA256": ""
 }
