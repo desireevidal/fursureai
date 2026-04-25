@@ -1,7 +1,7 @@
 {
   "USE_PLACEHOLDERS": "false",
-  "BREED_MODEL_URL": "https://drive.google.com/uc?export=download&id=14Yby3dSDw96KBR8uU6gq2cxXiSPU9pyo",
+  "BREED_MODEL_URL": "https://github.com/fursureai/Model/releases/latest/download/cat_breed_efficientnetb0.tflite",
   "BREED_MODEL_SHA256": "",
-  "GENDER_MODEL_URL": "https://drive.google.com/uc?export=download&id=1XU6V_AwRPEOMrckII54iHL6Qv3WdQWXq",
+  "GENDER_MODEL_URL": "https://github.com/fursureai/Model/releases/latest/download/mfcc_cnn_gender_model_float32.tflite",
   "GENDER_MODEL_SHA256": ""
 }
