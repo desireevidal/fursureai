@@ -45,12 +45,10 @@ class BreedResultCard extends StatelessWidget {
             ],
           ),
           SizedBox(height: context.spacing.m),
-
           _BreedRow(
             breed: result.breed,
             confidence: result.confidence,
           ),
-
           if (result.shouldShowSecondary) ...[
             SizedBox(height: context.spacing.m),
             _SecondaryBreedMatch(
@@ -178,7 +176,7 @@ class _SecondaryBreedMatch extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Label(
+          const Label(
             'Possible secondary match',
             variant: LabelVariant.body,
             weight: FontWeight.w600,
@@ -187,6 +185,7 @@ class _SecondaryBreedMatch extends StatelessWidget {
           Label(
             '$breed • ${(confidence * 100).toStringAsFixed(0)}%',
             variant: LabelVariant.body,
+            uppercase: false,
           ),
         ],
       ),
