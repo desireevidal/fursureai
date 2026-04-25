@@ -22,16 +22,14 @@ class AudioPreprocessor {
 
   List<List<List<List<double>>>> extractFeatures(File audioFile) {
     final bytes = audioFile.readAsBytesSync();
-    final samples = _parseWav(bytes);
+    final samples = _parsePreparedWav(bytes);
 
     if (samples.isEmpty) {
-      throw const InferenceException('Audio file contains no samples');
+      throw const InferenceException('Could not read audio for prediction.');
     }
 
     final trimmed = _trimSilence(samples);
     final normalized = _normalize(trimmed.isEmpty ? samples : trimmed);
-
-    // FINAL PIPELINE: no smartcrop
     final fixed = _fixLength(normalized);
 
     final mfcc = _mfcc(fixed);
@@ -41,18 +39,16 @@ class AudioPreprocessor {
     return _buildTensor(mfcc, delta, delta2);
   }
 
-  Float32List _parseWav(Uint8List bytes) {
+  Float32List _parsePreparedWav(Uint8List bytes) {
     if (bytes.length < 44) {
-      throw const InferenceException('Invalid WAV file: file too small');
+      throw const InferenceException('Could not prepare audio for prediction.');
     }
 
     final riff = String.fromCharCodes(bytes.sublist(0, 4));
     final wave = String.fromCharCodes(bytes.sublist(8, 12));
 
     if (riff != 'RIFF' || wave != 'WAVE') {
-      throw const InferenceException(
-        'Invalid WAV file: RIFF/WAVE header not found',
-      );
+      throw const InferenceException('Could not prepare audio for prediction.');
     }
 
     int offset = 12;
@@ -70,7 +66,7 @@ class AudioPreprocessor {
 
       if (chunkId == 'fmt ') {
         if (offset + 8 + 16 > bytes.length) {
-          throw const InferenceException('Invalid WAV file: corrupted fmt chunk');
+          throw const InferenceException('Could not prepare audio for prediction.');
         }
 
         final fmtData = ByteData.sublistView(
@@ -96,38 +92,18 @@ class AudioPreprocessor {
     }
 
     if (dataOffset < 0 || dataSize <= 0) {
-      throw const InferenceException('Invalid WAV file: data chunk not found');
+      throw const InferenceException('Could not prepare audio for prediction.');
     }
 
-    if (audioFormat != 1) {
-      throw const InferenceException(
-        'Unsupported WAV format. Please use PCM WAV.',
-      );
-    }
-
-    if (numChannels != 1) {
-      throw const InferenceException(
-        'Unsupported WAV file. Please use mono WAV.',
-      );
-    }
-
-    if (sampleRate != _sr) {
-      throw InferenceException(
-        'Unexpected sample rate. Please use ${_sr} Hz WAV.',
-      );
-    }
-
-    if (bitsPerSample != 16) {
-      throw const InferenceException(
-        'Unsupported WAV file. Please use 16-bit PCM WAV.',
-      );
+    if (audioFormat != 1 || numChannels != 1 || sampleRate != _sr || bitsPerSample != 16) {
+      throw const InferenceException('Could not prepare audio for prediction.');
     }
 
     final safeEnd = math.min(dataOffset + dataSize, bytes.length);
     final safeSize = safeEnd - dataOffset;
 
     if (safeSize <= 0 || safeSize.isOdd) {
-      throw const InferenceException('Invalid WAV audio data');
+      throw const InferenceException('Could not prepare audio for prediction.');
     }
 
     final numSamples = safeSize ~/ 2;
