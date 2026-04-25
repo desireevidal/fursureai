@@ -1,10 +1,11 @@
 import 'dart:io';
 
+import 'package:fursure/core/config/app_config.dart';
 import 'package:fursure/core/ml/image_preprocessor.dart';
 import 'package:fursure/core/ml/inference_runner.dart';
-import 'package:fursure/core/config/app_config.dart';
 import 'package:fursure/services/model_download_service.dart';
 import 'package:fursure/services/tflite_service.dart';
+
 import 'breed_result.dart';
 import 'prediction_constants.dart';
 
@@ -32,19 +33,39 @@ class BreedRepository {
   }
 
   BreedResult _parseOutput(List<double> output) {
-    var maxIndex = 0;
-    var maxVal = output[0];
-    for (var i = 1; i < output.length; i++) {
-      if (output[i] > maxVal) {
-        maxVal = output[i];
-        maxIndex = i;
-      }
+    if (output.isEmpty) {
+      return const BreedResult(
+        breed: 'Unknown',
+        confidence: 0.0,
+      );
     }
 
-    final label = maxIndex < PredictionConstants.breedLabels.length
-        ? PredictionConstants.breedLabels[maxIndex]
-        : 'Unknown';
+    final indexedScores = <_IndexedScore>[
+      for (var i = 0; i < output.length; i++) _IndexedScore(i, output[i]),
+    ]..sort((a, b) => b.score.compareTo(a.score));
 
-    return BreedResult(breed: label, confidence: maxVal);
+    final top1 = indexedScores[0];
+    final top2 = indexedScores.length > 1 ? indexedScores[1] : null;
+
+    return BreedResult(
+      breed: _labelFor(top1.index),
+      confidence: top1.score,
+      secondaryBreed: top2 != null ? _labelFor(top2.index) : null,
+      secondaryConfidence: top2?.score,
+    );
   }
+
+  String _labelFor(int index) {
+    if (index < 0 || index >= PredictionConstants.breedLabels.length) {
+      return 'Unknown';
+    }
+    return PredictionConstants.breedLabels[index];
+  }
+}
+
+class _IndexedScore {
+  const _IndexedScore(this.index, this.score);
+
+  final int index;
+  final double score;
 }
