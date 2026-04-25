@@ -102,6 +102,7 @@ final genderRepositoryProvider = Provider<GenderRepository>(
     inferenceRunner: ref.watch(genderInferenceRunnerProvider),
     modelDownloadService: ref.watch(modelDownloadServiceProvider),
     audioPreprocessor: ref.watch(audioPreprocessorProvider),
+    audioService: ref.watch(audioServiceProvider),
   ),
 );
 
