@@ -1,0 +1,7 @@
+{
+  "USE_PLACEHOLDERS": "true",
+  "BREED_MODEL_URL": "",
+  "GENDER_MODEL_URL": "",
+  "BREED_MODEL_SHA256": "",
+  "GENDER_MODEL_SHA256": ""
+}
