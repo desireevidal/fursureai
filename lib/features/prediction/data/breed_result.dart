@@ -32,8 +32,7 @@ class BreedResult {
 
   @override
   String toString() {
-    final primaryText =
-        '${(confidence * 100).toStringAsFixed(1)}%';
+    final primaryText = '${(confidence * 100).toStringAsFixed(1)}%';
 
     if (!hasSecondary) {
       return 'BreedResult(breed: $breed, confidence: $primaryText)';
