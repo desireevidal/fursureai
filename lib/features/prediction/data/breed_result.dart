@@ -30,6 +30,20 @@ class BreedResult {
     return secondary >= 0.10 || gap <= 0.15;
   }
 
+  double get primaryDisplayShare {
+    if (!shouldShowSecondary) return confidence;
+    final total = confidence + secondaryConfidence!;
+    if (total <= 0) return confidence;
+    return confidence / total;
+  }
+
+  double get secondaryDisplayShare {
+    if (!shouldShowSecondary) return 0;
+    final total = confidence + secondaryConfidence!;
+    if (total <= 0) return 0;
+    return secondaryConfidence! / total;
+  }
+
   @override
   String toString() {
     final primaryText = '${(confidence * 100).toStringAsFixed(1)}%';

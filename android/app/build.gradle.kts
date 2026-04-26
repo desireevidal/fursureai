@@ -40,6 +40,11 @@ android {
     }
 }
 
+dependencies {
+    implementation("com.google.ai.edge.litert:litert:1.4.0")
+    implementation("io.github.google-ai-edge:litert-select-tf-ops:0.1.0")
+}
+
 flutter {
     source = "../.."
 }

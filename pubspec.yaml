@@ -68,3 +68,4 @@ flutter:
     - assets/images/
     - assets/images/breed_info/
     - assets/images/breed_info_cropped/
+    - assets/models/

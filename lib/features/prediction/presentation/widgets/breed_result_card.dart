@@ -47,13 +47,13 @@ class BreedResultCard extends StatelessWidget {
           SizedBox(height: context.spacing.m),
           _BreedRow(
             breed: result.breed,
-            confidence: result.confidence,
+            confidence: result.primaryDisplayShare,
           ),
           if (result.shouldShowSecondary) ...[
-            SizedBox(height: context.spacing.m),
-            _SecondaryBreedMatch(
+            SizedBox(height: context.spacing.sm),
+            _BreedRow(
               breed: result.secondaryBreed!,
-              confidence: result.secondaryConfidence!,
+              confidence: result.secondaryDisplayShare,
             ),
           ],
         ],
@@ -76,6 +76,9 @@ class _BreedRow extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final brand = context.brand;
     final breedInfo = findBreedInfo(breed);
+    final displayBreed = normalizeBreedName(breed) == 'puspin'
+        ? 'Domestic Shorthair (Puspin)'
+        : breed;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -115,9 +118,11 @@ class _BreedRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Label(
-                    breed,
+                    displayBreed,
                     variant: LabelVariant.subtitle,
                     weight: FontWeight.w600,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 6),
                   Row(
@@ -148,47 +153,6 @@ class _BreedRow extends StatelessWidget {
           ],
         ),
       ],
-    );
-  }
-}
-
-class _SecondaryBreedMatch extends StatelessWidget {
-  const _SecondaryBreedMatch({
-    required this.breed,
-    required this.confidence,
-  });
-
-  final String breed;
-  final double confidence;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final spacing = context.spacing;
-
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(spacing.m),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
-        borderRadius: context.radius.m,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Label(
-            'Possible secondary match',
-            variant: LabelVariant.body,
-            weight: FontWeight.w600,
-          ),
-          SizedBox(height: spacing.xs),
-          Label(
-            '$breed • ${(confidence * 100).toStringAsFixed(0)}%',
-            variant: LabelVariant.body,
-            uppercase: false,
-          ),
-        ],
-      ),
     );
   }
 }

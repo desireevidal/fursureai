@@ -259,6 +259,7 @@ BreedInfo? findBreedInfo(String? breed) {
 
   switch (normalizeBreedName(breed)) {
     case 'domesticshorthair':
+    case 'puspin':
       return domesticShorthairBreedInfo;
     case 'siamese':
       return siameseBreedInfo;

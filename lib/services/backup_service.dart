@@ -51,6 +51,8 @@ class BackupService {
         'catName': record.catName,
         'breed': record.breed,
         'breedConfidence': record.breedConfidence,
+        'secondaryBreed': record.secondaryBreed,
+        'secondaryBreedConfidence': record.secondaryBreedConfidence,
         'gender': record.gender,
         'genderConfidence': record.genderConfidence,
         'timestamp': record.timestamp.toIso8601String(),
@@ -154,6 +156,9 @@ class BackupService {
         catName: map['catName'] as String?,
         breed: map['breed'] as String?,
         breedConfidence: (map['breedConfidence'] as num?)?.toDouble(),
+        secondaryBreed: map['secondaryBreed'] as String?,
+        secondaryBreedConfidence:
+            (map['secondaryBreedConfidence'] as num?)?.toDouble(),
         gender: map['gender'] as String?,
         genderConfidence: (map['genderConfidence'] as num?)?.toDouble(),
         timestamp: DateTime.parse(timestamp),

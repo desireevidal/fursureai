@@ -18,7 +18,7 @@ import 'package:fursure/features/prediction/data/gender_result.dart';
 import 'breed_result_card.dart';
 import 'gender_result_card.dart';
 
-class ScanResultsStep extends StatelessWidget {
+class ScanResultsStep extends StatefulWidget {
   const ScanResultsStep({
     super.key,
     required this.catName,
@@ -37,63 +37,151 @@ class ScanResultsStep extends StatelessWidget {
   final VoidCallback onCancel;
 
   @override
+  State<ScanResultsStep> createState() => _ScanResultsStepState();
+}
+
+class _ScanResultsStepState extends State<ScanResultsStep> {
+  @override
   Widget build(BuildContext context) {
     final topPad = MediaQuery.paddingOf(context).top;
-    const headerHeight = 88.0;
-    final purpleHeight = topPad + headerHeight;
+    const headerBarHeight = 56.0;
     final circleSize =
         (MediaQuery.sizeOf(context).width * 0.37).clamp(100.0, 150.0);
     final surfaceOverlap = context.radius.xl.topLeft.x;
-    final brand = context.brand;
-    final onPrimary = Theme.of(context).colorScheme.onPrimary;
     final spacing = context.spacing;
     final lo = context.layout;
+    final expandedPurpleHeight = topPad + headerBarHeight + surfaceOverlap;
+    final topSpacer = expandedPurpleHeight - surfaceOverlap;
+    final metaTopPadding = lo.screenPadV;
+    final onPrimary = Theme.of(context).colorScheme.onPrimary;
+    final brand = context.brand;
 
-    final breedResult = predictionResult?.breedResult;
-    final genderResult = predictionResult?.genderResult;
+    final breedResult = widget.predictionResult?.breedResult;
+    final genderResult = widget.predictionResult?.genderResult;
 
     return AppPage(
       horizontalPadding: false,
       child: Stack(
         children: [
           Positioned(
-            top: purpleHeight - surfaceOverlap,
+            top: 0,
+            left: 0,
+            right: 0,
+            height: expandedPurpleHeight,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [brand.pink, brand.purple, brand.deepPurple],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: expandedPurpleHeight - surfaceOverlap,
             left: 0,
             right: 0,
             bottom: 0,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.only(
-                  topLeft: context.radius.xxl.topLeft,
-                  topRight: context.radius.xxl.topRight,
+            child: Stack(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.only(
+                      topLeft: context.radius.xxl.topLeft,
+                      topRight: context.radius.xxl.topRight,
+                    ),
+                  ),
+                  clipBehavior: Clip.antiAlias,
                 ),
-              ),
-              clipBehavior: Clip.antiAlias,
+                IgnorePointer(
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          height: 18,
+                          color: Theme.of(context).colorScheme.surface,
+                        ),
+                        Container(
+                          height: 44,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.only(
+                              topLeft: context.radius.xxl.topLeft,
+                              topRight: context.radius.xxl.topRight,
+                            ),
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Theme.of(context).colorScheme.surface,
+                                Theme.of(
+                                  context,
+                                ).colorScheme.surface.withValues(alpha: 0.0),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SizedBox(height: purpleHeight + circleSize / 2 - surfaceOverlap),
+              SizedBox(height: topSpacer),
               Expanded(
                 child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: ClampingScrollPhysics(),
+                  ),
                   child: Padding(
                     padding: EdgeInsets.fromLTRB(
                       lo.screenPadH,
-                      surfaceOverlap + lo.screenPadV,
+                      metaTopPadding,
                       lo.screenPadH,
                       0,
                     ),
                     child: Column(
                       children: [
+                        Container(
+                          width: circleSize,
+                          height: circleSize,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [brand.pink, brand.purple, brand.deepPurple],
+                            ),
+                          ),
+                          padding: const EdgeInsets.all(3),
+                          child: ClipOval(
+                            child: widget.selectedImage != null
+                                ? Image.file(
+                                    widget.selectedImage!,
+                                    fit: BoxFit.cover,
+                                  )
+                                : ColoredBox(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.surfaceContainerHighest,
+                                  ),
+                          ),
+                        ),
+                        SizedBox(height: spacing.lg),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Semantics(
-                              label: 'Cat name: $catName',
+                              label: 'Cat name: ${widget.catName}',
                               child: Label(
-                                catName,
+                                widget.catName,
                                 variant: LabelVariant.h2,
                                 size: 28,
                               ),
@@ -103,7 +191,7 @@ class ScanResultsStep extends StatelessWidget {
                               button: true,
                               label: 'Edit cat name',
                               child: GestureDetector(
-                                onTap: onEditName,
+                                onTap: widget.onEditName,
                                 child: Icon(
                                   Icons.edit_outlined,
                                   size: 20,
@@ -135,7 +223,11 @@ class ScanResultsStep extends StatelessWidget {
                           ),
                         if (breedResult != null) ...[
                           SizedBox(height: spacing.m),
-                          BreedInfoPreviewList(rawBreed: breedResult.breed),
+                          BreedInfoPreviewList(
+                            rawBreed: breedResult.shouldShowSecondary
+                                ? '${breedResult.breed}, ${breedResult.secondaryBreed}'
+                                : breedResult.breed,
+                          ),
                         ],
                         if (breedResult == null && genderResult == null)
                           const UnavailableCard(),
@@ -160,7 +252,7 @@ class ScanResultsStep extends StatelessWidget {
                         child: Button(
                           label: 'Cancel',
                           variant: ButtonVariant.outlined,
-                          onPressed: onCancel,
+                          onPressed: widget.onCancel,
                         ),
                       ),
                       SizedBox(width: spacing.m),
@@ -168,7 +260,7 @@ class ScanResultsStep extends StatelessWidget {
                         child: Button(
                           label: 'Save',
                           variant: ButtonVariant.primary,
-                          onPressed: onSave,
+                          onPressed: widget.onSave,
                         ),
                       ),
                     ],
@@ -181,58 +273,28 @@ class ScanResultsStep extends StatelessWidget {
             top: 0,
             left: 0,
             right: 0,
-            height: purpleHeight,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [brand.pink, brand.purple, brand.deepPurple],
-                ),
-              ),
-              padding: EdgeInsets.fromLTRB(0, topPad + spacing.sm, 0, 0),
-              child: Stack(
-                alignment: Alignment.topCenter,
-                children: [
-                  Align(
-                    alignment: Alignment.topLeft,
-                    child: AppBackButton(onPressed: onCancel, color: onPrimary),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.only(top: spacing.m),
-                    child: Label(
+            height: topPad + headerBarHeight,
+            child: Padding(
+              padding: EdgeInsets.only(top: topPad + spacing.xs),
+              child: SizedBox(
+                height: headerBarHeight,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: AppBackButton(
+                        onPressed: widget.onCancel,
+                        color: onPrimary,
+                      ),
+                    ),
+                    Label(
                       'Results',
                       variant: LabelVariant.title,
                       color: onPrimary,
-                      size: 20,
-                      weight: FontWeight.w700,
+                      uppercase: false,
                     ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Positioned(
-            top: purpleHeight - circleSize / 2,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                width: circleSize,
-                height: circleSize,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Theme.of(context).colorScheme.surface,
-                ),
-                padding: const EdgeInsets.all(3),
-                child: ClipOval(
-                  child: selectedImage != null
-                      ? Image.file(selectedImage!, fit: BoxFit.cover)
-                      : ColoredBox(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.surfaceContainerHighest,
-                        ),
+                  ],
                 ),
               ),
             ),
@@ -287,6 +349,18 @@ class _TagsRow extends StatelessWidget {
               border: Border.all(color: brand.purple, width: 1.5),
             ),
             child: Label(breed.breed, variant: LabelVariant.tag),
+          ),
+        if (breed != null && breed.shouldShowSecondary)
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: spacing.m,
+              vertical: spacing.sm,
+            ),
+            decoration: BoxDecoration(
+              borderRadius: context.radius.lg,
+              border: Border.all(color: brand.purple, width: 1.5),
+            ),
+            child: Label(breed.secondaryBreed!, variant: LabelVariant.tag),
           ),
       ],
     );

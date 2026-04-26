@@ -45,6 +45,11 @@ class ModelDownloadService {
     void Function(double)? onProgress,
     bool forceRedownload = false,
   }) async {
+    if (spec.assetPath.isNotEmpty) {
+      onProgress?.call(1.0);
+      return 'asset:${spec.assetPath}';
+    }
+
     final Directory dir = await _getDocumentsDirectory();
     final file = File('${dir.path}/${spec.filename}');
 

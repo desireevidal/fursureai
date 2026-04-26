@@ -29,6 +29,14 @@ class ScanAudioRecorder extends ConsumerStatefulWidget {
 
 class _ScanAudioRecorderState extends ConsumerState<ScanAudioRecorder>
     with SingleTickerProviderStateMixin {
+  static const Set<String> _acceptedAudioExtensions = {
+    'wav',
+    'mp3',
+    'm4a',
+    'aac',
+    'ogg',
+  };
+
   bool _isRecording = false;
   double _currentAmplitude = 0.0;
 
@@ -110,10 +118,40 @@ class _ScanAudioRecorderState extends ConsumerState<ScanAudioRecorder>
   }
 
   Future<void> _pickAudioFile() async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.audio);
-    if (result != null && result.files.single.path != null) {
-      widget.onAudioSelected(result.files.single.path!);
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: _pickerExtensions(),
+    );
+    final path = result?.files.single.path;
+    if (path == null) {
+      return;
     }
+
+    if (!_hasAcceptedExtension(path)) {
+      return;
+    }
+
+    widget.onAudioSelected(path);
+  }
+
+  bool _hasAcceptedExtension(String path) {
+    final dotIndex = path.lastIndexOf('.');
+    if (dotIndex < 0 || dotIndex == path.length - 1) {
+      return false;
+    }
+
+    return _acceptedAudioExtensions.contains(
+      path.substring(dotIndex + 1).toLowerCase(),
+    );
+  }
+
+  List<String> _pickerExtensions() {
+    final extensions = <String>{
+      ..._acceptedAudioExtensions,
+      ..._acceptedAudioExtensions.map((ext) => ext.toUpperCase()),
+    }.toList();
+    extensions.sort();
+    return extensions;
   }
 
   @override

@@ -12,6 +12,15 @@ class ImagePreprocessor {
   static const int _size = PredictionConstants.imageInputSize;
 
   List<dynamic> preprocess(File imageFile) {
+    return preprocessFlat(imageFile).reshape([1, _size, _size, 3]);
+  }
+
+  Uint8List preprocessBytes(File imageFile) {
+    final input = preprocessFlat(imageFile);
+    return input.buffer.asUint8List();
+  }
+
+  Float32List preprocessFlat(File imageFile) {
     final bytes = imageFile.readAsBytesSync();
     final image = img.decodeImage(bytes);
     if (image == null) throw Exception('Failed to decode image');
@@ -34,6 +43,6 @@ class ImagePreprocessor {
       }
     }
 
-    return input.reshape([1, _size, _size, 3]);
+    return input;
   }
 }

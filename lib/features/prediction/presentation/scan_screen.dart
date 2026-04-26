@@ -5,8 +5,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'package:fursure/core/error/app_exceptions.dart';
+import 'package:fursure/core/theme/app_radius.dart';
+import 'package:fursure/core/theme/app_spacing.dart';
+import 'package:fursure/core/theme/brand_colors.dart';
 import 'package:fursure/core/widgets/app_cat_name_dialog.dart';
 import 'package:fursure/core/widgets/app_confirmation_dialog.dart';
+import 'package:fursure/core/widgets/buttons.dart';
+import 'package:fursure/core/widgets/label.dart';
 import 'package:fursure/features/results/presentation/results_controller.dart';
 import 'scan_prediction_controller.dart';
 import 'scan_session.dart';
@@ -25,22 +31,72 @@ class ScanScreen extends ConsumerStatefulWidget {
 }
 
 class _ScanScreenState extends ConsumerState<ScanScreen> {
+  static const Set<String> _acceptedImageExtensions = {
+    'jpg',
+    'jpeg',
+    'png',
+    'webp',
+  };
+
   ScanStep _step = ScanStep.photo;
   ScanSession _session = const ScanSession();
+  late final ProviderSubscription<AsyncValue<ScanPredictionResult?>>
+      _predictionListener;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    ref.listenManual(scanPredictionControllerProvider, (previous, next) {
-      next.whenData((result) {
-        if (result != null) {
-          setState(() {
-            _session = _session.copyWith(pendingRecord: result.pendingRecord);
-            _step = ScanStep.results;
-          });
-        }
-      });
-    });
+  void initState() {
+    super.initState();
+    _predictionListener = ref.listenManual(
+      scanPredictionControllerProvider,
+      (previous, next) {
+        next.whenOrNull(
+          data: (result) {
+            if (result != null && mounted) {
+              setState(() {
+                _session = _session.copyWith(pendingRecord: result.pendingRecord);
+                _step = ScanStep.results;
+              });
+            }
+          },
+          error: (error, _) async {
+            final message = error is AppException ? error.message : '$error';
+            if (!mounted) {
+              return;
+            }
+
+            if (message.startsWith('No meow detected')) {
+              await _showNoMeowDetectedDialog();
+              if (!mounted) return;
+
+              ref.invalidate(scanPredictionControllerProvider);
+              setState(() {
+                _session = _session.copyWith(
+                  clearAudioPath: true,
+                  clearPendingRecord: true,
+                );
+                _step = ScanStep.audio;
+              });
+              return;
+            }
+
+            await _showBreedPredictionErrorDialog(message);
+            if (!mounted) return;
+
+            ref.invalidate(scanPredictionControllerProvider);
+            setState(() {
+              _session = _session.copyWith(clearPendingRecord: true);
+              _step = ScanStep.photo;
+            });
+          },
+        );
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _predictionListener.close();
+    super.dispose();
   }
 
   Future<void> _pickImage(ImageSource source) async {
@@ -48,12 +104,18 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
       source: source,
       imageQuality: 85,
     );
-    if (picked != null && mounted) {
-      setState(() {
-        _session = _session.copyWith(selectedImage: File(picked.path));
-        _step = ScanStep.audio;
-      });
+    if (picked == null || !mounted) {
+      return;
     }
+
+    if (!_hasAcceptedExtension(picked.path, _acceptedImageExtensions)) {
+      return;
+    }
+
+    setState(() {
+      _session = _session.copyWith(selectedImage: File(picked.path));
+      _step = ScanStep.audio;
+    });
   }
 
   void _onAudioSelected(String path) {
@@ -142,6 +204,196 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     if (shouldDiscard == true && mounted) {
       _retake();
     }
+  }
+
+  Future<void> _showNoMeowDetectedDialog() {
+    final spacing = context.spacing;
+    final brand = context.brand;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => Dialog(
+        insetPadding: EdgeInsets.symmetric(
+          horizontal: spacing.lg,
+          vertical: spacing.xl,
+        ),
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: EdgeInsets.fromLTRB(
+            spacing.lg,
+            spacing.m,
+            spacing.lg,
+            spacing.lg,
+          ),
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: context.radius.lg,
+            boxShadow: [
+              BoxShadow(
+                color: colorScheme.shadow.withValues(alpha: 0.14),
+                blurRadius: 24,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Align(
+                alignment: Alignment.topRight,
+                child: GestureDetector(
+                  onTap: () => Navigator.of(dialogContext).pop(),
+                  child: Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: colorScheme.surfaceContainerHighest,
+                    ),
+                    child: Icon(
+                      Icons.close_rounded,
+                      size: 18,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.mic_off_rounded,
+                size: 36,
+                color: brand.pink,
+              ),
+              SizedBox(height: spacing.sm),
+              const Label(
+                'No Meow Detected',
+                variant: LabelVariant.title,
+                size: 20,
+                weight: FontWeight.w800,
+                align: TextAlign.center,
+                uppercase: false,
+              ),
+              SizedBox(height: spacing.sm),
+              Label(
+                'We could not detect a clear meow in the recording. Please try again and capture a short, audible meow.',
+                variant: LabelVariant.body,
+                align: TextAlign.center,
+                height: 1.45,
+                color: colorScheme.onSurfaceVariant,
+                uppercase: false,
+              ),
+              SizedBox(height: spacing.lg),
+              Button(
+                label: 'Try Again',
+                backgroundColor: brand.pink,
+                onPressed: () => Navigator.of(dialogContext).pop(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showBreedPredictionErrorDialog(String message) {
+    final spacing = context.spacing;
+    final brand = context.brand;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => Dialog(
+        insetPadding: EdgeInsets.symmetric(
+          horizontal: spacing.lg,
+          vertical: spacing.xl,
+        ),
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: EdgeInsets.fromLTRB(
+            spacing.lg,
+            spacing.m,
+            spacing.lg,
+            spacing.lg,
+          ),
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: context.radius.lg,
+            boxShadow: [
+              BoxShadow(
+                color: colorScheme.shadow.withValues(alpha: 0.14),
+                blurRadius: 24,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Align(
+                alignment: Alignment.topRight,
+                child: GestureDetector(
+                  onTap: () => Navigator.of(dialogContext).pop(),
+                  child: Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: colorScheme.surfaceContainerHighest,
+                    ),
+                    child: Icon(
+                      Icons.close_rounded,
+                      size: 18,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.image_not_supported_outlined,
+                size: 36,
+                color: brand.pink,
+              ),
+              SizedBox(height: spacing.sm),
+              const Label(
+                'Breed Prediction Failed',
+                variant: LabelVariant.title,
+                size: 20,
+                weight: FontWeight.w800,
+                align: TextAlign.center,
+                uppercase: false,
+              ),
+              SizedBox(height: spacing.sm),
+              Label(
+                message,
+                variant: LabelVariant.body,
+                align: TextAlign.center,
+                height: 1.45,
+                color: colorScheme.onSurfaceVariant,
+                uppercase: false,
+              ),
+              SizedBox(height: spacing.lg),
+              Button(
+                label: 'Try Again',
+                backgroundColor: brand.pink,
+                onPressed: () => Navigator.of(dialogContext).pop(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  bool _hasAcceptedExtension(String path, Set<String> extensions) {
+    final dotIndex = path.lastIndexOf('.');
+    if (dotIndex < 0 || dotIndex == path.length - 1) {
+      return false;
+    }
+
+    final ext = path.substring(dotIndex + 1).toLowerCase();
+    return extensions.contains(ext);
   }
 
   @override

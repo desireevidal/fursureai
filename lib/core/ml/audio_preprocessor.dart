@@ -29,7 +29,15 @@ class AudioPreprocessor {
     }
 
     final trimmed = _trimSilence(samples);
-    final normalized = _normalize(trimmed.isEmpty ? samples : trimmed);
+    final candidate = trimmed.isEmpty ? samples : trimmed;
+
+    if (!_hasUsableMeowSignal(candidate)) {
+      throw const InferenceException(
+        'No meow detected. Please try again with a clearer meow.',
+      );
+    }
+
+    final normalized = _normalize(candidate);
     final fixed = _fixLength(normalized);
 
     final mfcc = _mfcc(fixed);
@@ -209,6 +217,28 @@ class AudioPreprocessor {
       out[i] = audio[start + i];
     }
     return out;
+  }
+
+  bool _hasUsableMeowSignal(Float32List audio) {
+    if (audio.isEmpty) return false;
+
+    double peak = 0.0;
+    double sumSq = 0.0;
+    int activeSamples = 0;
+
+    for (final sample in audio) {
+      final abs = sample.abs();
+      if (abs > peak) peak = abs;
+      sumSq += sample * sample;
+      if (abs >= 0.015) {
+        activeSamples++;
+      }
+    }
+
+    final rms = math.sqrt(sumSq / audio.length);
+    final activeRatio = activeSamples / audio.length;
+
+    return peak >= 0.025 && rms >= 0.003 && activeRatio >= 0.005;
   }
 
   List<Float64List> _mfcc(Float32List audio) {

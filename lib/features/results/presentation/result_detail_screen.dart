@@ -8,10 +8,10 @@ import 'package:fursure/core/constants/app_constants.dart';
 import 'package:fursure/core/theme/app_radius.dart';
 import 'package:fursure/core/theme/app_spacing.dart';
 import 'package:fursure/core/theme/brand_colors.dart';
-import 'package:fursure/core/widgets/app_back_button.dart';
 import 'package:fursure/core/widgets/app_cat_name_dialog.dart';
 import 'package:fursure/core/widgets/app_confirmation_dialog.dart';
 import 'package:fursure/core/widgets/app_page.dart';
+import 'package:fursure/core/widgets/app_back_button.dart';
 import 'package:fursure/core/widgets/buttons.dart';
 import 'package:fursure/core/widgets/label.dart';
 import 'package:fursure/core/widgets/unavailable_card.dart';
@@ -110,7 +110,7 @@ class _NotFound extends StatelessWidget {
   }
 }
 
-class _DetailView extends StatelessWidget {
+class _DetailView extends StatefulWidget {
   const _DetailView({
     required this.record,
     this.onDelete,
@@ -122,37 +122,46 @@ class _DetailView extends StatelessWidget {
   final Future<void> Function(String name)? onRename;
 
   @override
+  State<_DetailView> createState() => _DetailViewState();
+}
+
+class _DetailViewState extends State<_DetailView> {
+  @override
   Widget build(BuildContext context) {
     final topPad = MediaQuery.paddingOf(context).top;
-    const headerHeight = 88.0;
-    final purpleHeight = topPad + headerHeight;
+    const headerBarHeight = 56.0;
     const circleSize = 140.0;
     final surfaceOverlap = context.radius.xl.topLeft.x;
 
-    final brand = context.brand;
     final onPrimary = Theme.of(context).colorScheme.onPrimary;
+    final brand = context.brand;
     final spacing = context.spacing;
     final lo = context.layout;
+    final expandedPurpleHeight = topPad + headerBarHeight + surfaceOverlap;
+    final topSpacer = expandedPurpleHeight - surfaceOverlap;
+    final metaTopPadding = lo.screenPadV;
 
     final hasBreed =
-        record.breed != null &&
-        record.breed!.isNotEmpty &&
-        record.breed != 'Unavailable';
+        widget.record.breed != null &&
+        widget.record.breed!.isNotEmpty &&
+        widget.record.breed != 'Unavailable';
     final hasGender =
-        record.gender != null &&
-        record.gender!.isNotEmpty &&
-        record.gender != 'Unavailable';
+        widget.record.gender != null &&
+        widget.record.gender!.isNotEmpty &&
+        widget.record.gender != 'Unavailable';
 
     final breedResult = hasBreed
         ? BreedResult(
-            breed: record.breed!,
-            confidence: record.breedConfidence ?? 0,
+            breed: widget.record.breed!,
+            confidence: widget.record.breedConfidence ?? 0,
+            secondaryBreed: widget.record.secondaryBreed,
+            secondaryConfidence: widget.record.secondaryBreedConfidence,
           )
         : null;
     final genderResult = hasGender
         ? GenderResult(
-            gender: record.gender!,
-            confidence: record.genderConfidence ?? 0,
+            gender: widget.record.gender!,
+            confidence: widget.record.genderConfidence ?? 0,
           )
         : null;
 
@@ -162,43 +171,136 @@ class _DetailView extends StatelessWidget {
       child: Stack(
         children: [
           Positioned(
-            top: purpleHeight - surfaceOverlap,
+            top: 0,
+            left: 0,
+            right: 0,
+            height: expandedPurpleHeight,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [brand.pink, brand.purple, brand.deepPurple],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: expandedPurpleHeight - surfaceOverlap,
             left: 0,
             right: 0,
             bottom: 0,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.only(
-                  topLeft: context.radius.xxl.topLeft,
-                  topRight: context.radius.xxl.topRight,
+            child: Stack(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.only(
+                      topLeft: context.radius.xxl.topLeft,
+                      topRight: context.radius.xxl.topRight,
+                    ),
+                  ),
+                  clipBehavior: Clip.antiAlias,
                 ),
-              ),
-              clipBehavior: Clip.antiAlias,
+                IgnorePointer(
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          height: 18,
+                          color: Theme.of(context).colorScheme.surface,
+                        ),
+                        Container(
+                          height: 44,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.only(
+                              topLeft: context.radius.xxl.topLeft,
+                              topRight: context.radius.xxl.topRight,
+                            ),
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Theme.of(context).colorScheme.surface,
+                                Theme.of(
+                                  context,
+                                ).colorScheme.surface.withValues(alpha: 0.0),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SizedBox(height: purpleHeight + circleSize / 2 - surfaceOverlap),
+              SizedBox(height: topSpacer),
               Expanded(
                 child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: ClampingScrollPhysics(),
+                  ),
                   child: Padding(
                     padding: EdgeInsets.fromLTRB(
                       lo.screenPadH,
-                      surfaceOverlap + lo.screenPadV,
+                      metaTopPadding,
                       lo.screenPadH,
                       0,
                     ),
                     child: Column(
                       children: [
+                        Container(
+                          width: circleSize,
+                          height: circleSize,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [brand.pink, brand.purple, brand.deepPurple],
+                            ),
+                          ),
+                          padding: const EdgeInsets.all(3),
+                          child: ClipOval(
+                            child: widget.record.imagePath != null
+                                ? Image.file(
+                                    File(widget.record.imagePath!),
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, _) => ColoredBox(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.surfaceContainerHighest,
+                                      child: Icon(
+                                        Icons.broken_image_outlined,
+                                        size: 40,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  )
+                                : ColoredBox(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.surfaceContainerHighest,
+                                  ),
+                          ),
+                        ),
+                        SizedBox(height: spacing.lg),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Flexible(
                               child: Label(
-                                record.catName?.isNotEmpty == true
-                                    ? record.catName!
+                                widget.record.catName?.isNotEmpty == true
+                                    ? widget.record.catName!
                                     : 'Unknown Cat',
                                 variant: LabelVariant.h2,
                                 size: 28,
@@ -207,7 +309,7 @@ class _DetailView extends StatelessWidget {
                                 uppercase: false,
                               ),
                             ),
-                            if (onRename != null) ...[
+                            if (widget.onRename != null) ...[
                               SizedBox(width: spacing.sm),
                               GestureDetector(
                                 onTap: () => _editName(context),
@@ -224,13 +326,15 @@ class _DetailView extends StatelessWidget {
                         ),
                         SizedBox(height: spacing.xs),
                         Label(
-                          _timestamp(record.timestamp),
+                          _timestamp(widget.record.timestamp),
                           variant: LabelVariant.caption,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurfaceVariant,
                           uppercase: false,
                         ),
                         SizedBox(height: spacing.m),
-                        _TagsRow(record: record),
+                        _TagsRow(record: widget.record),
                         SizedBox(height: lo.screenPadV),
                         if (genderResult != null) ...[
                           Semantics(
@@ -245,11 +349,15 @@ class _DetailView extends StatelessWidget {
                             child: BreedResultCard(result: breedResult),
                           ),
                           SizedBox(height: spacing.m),
-                          BreedInfoPreviewList(rawBreed: breedResult.breed),
+                          BreedInfoPreviewList(
+                            rawBreed: breedResult.shouldShowSecondary
+                                ? '${breedResult.breed}, ${breedResult.secondaryBreed}'
+                                : breedResult.breed,
+                          ),
                         ],
                         if (breedResult == null && genderResult == null)
                           const UnavailableCard(),
-                        SizedBox(height: spacing.sm),
+                        SizedBox(height: lo.navBarTotalHeight + spacing.xl),
                       ],
                     ),
                   ),
@@ -261,98 +369,49 @@ class _DetailView extends StatelessWidget {
             top: 0,
             left: 0,
             right: 0,
-            height: purpleHeight,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [brand.pink, brand.purple, brand.deepPurple],
-                ),
-              ),
-              padding: EdgeInsets.fromLTRB(0, topPad + spacing.sm, 0, 0),
-              child: Stack(
-                alignment: Alignment.topCenter,
-                children: [
-                  Align(
-                    alignment: Alignment.topLeft,
-                    child: AppBackButton(
-                      onPressed: () => context.pop(),
-                      color: onPrimary,
+            height: topPad + headerBarHeight,
+            child: Padding(
+              padding: EdgeInsets.only(top: topPad + spacing.xs),
+              child: SizedBox(
+                height: headerBarHeight,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: AppBackButton(
+                        onPressed: () => context.pop(),
+                        color: onPrimary,
+                      ),
                     ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.only(top: spacing.m),
-                    child: Label(
+                    Label(
                       'Pawfile',
                       variant: LabelVariant.title,
                       color: onPrimary,
-                      size: 20,
-                      weight: FontWeight.w700,
                       uppercase: false,
                     ),
-                  ),
-                  if (onDelete != null)
-                    Align(
-                      alignment: Alignment.topRight,
-                      child: Padding(
-                        padding: EdgeInsets.fromLTRB(
-                          spacing.m,
-                          spacing.xs,
-                          lo.screenPadH,
-                          0,
-                        ),
-                        child: IconButton(
-                          onPressed: () => _confirmDelete(context),
-                          tooltip: 'Delete entry',
-                          icon: Icon(
-                            Icons.delete_outline_rounded,
-                            color: onPrimary,
-                            size: lo.iconSizeM,
+                    if (widget.onDelete != null)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(
+                            spacing.m,
+                            spacing.sm,
+                            lo.screenPadH,
+                            spacing.sm,
+                          ),
+                          child: GestureDetector(
+                            onTap: () => _confirmDelete(context),
+                            behavior: HitTestBehavior.opaque,
+                            child: Icon(
+                              Icons.delete_outline_rounded,
+                              color: onPrimary,
+                              size: lo.iconSizeM,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-          Positioned(
-            top: purpleHeight - circleSize / 2,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                width: circleSize,
-                height: circleSize,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Theme.of(context).colorScheme.surface,
-                ),
-                padding: const EdgeInsets.all(3),
-                child: ClipOval(
-                  child: record.imagePath != null
-                      ? Image.file(
-                          File(record.imagePath!),
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, _) => ColoredBox(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.surfaceContainerHighest,
-                            child: Icon(
-                              Icons.broken_image_outlined,
-                              size: 40,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        )
-                      : ColoredBox(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.surfaceContainerHighest,
-                        ),
+                  ],
                 ),
               ),
             ),
@@ -370,8 +429,8 @@ class _DetailView extends StatelessWidget {
       confirmLabel: 'Delete',
     );
 
-    if (shouldDelete == true && onDelete != null) {
-      await onDelete!.call();
+    if (shouldDelete == true && widget.onDelete != null) {
+      await widget.onDelete!.call();
       if (context.mounted) {
         context.pop();
       }
@@ -379,15 +438,15 @@ class _DetailView extends StatelessWidget {
   }
 
   Future<void> _editName(BuildContext context) async {
-    if (onRename == null) return;
+    if (widget.onRename == null) return;
 
     final updatedName = await showAppCatNameDialog(
       context,
-      initialName: record.catName ?? '',
+      initialName: widget.record.catName ?? '',
     );
 
     if (updatedName != null && updatedName.isNotEmpty) {
-      await onRename!(updatedName);
+      await widget.onRename!(updatedName);
     }
   }
 
@@ -418,6 +477,14 @@ class _TagsRow extends StatelessWidget {
         record.gender != null &&
         record.gender!.isNotEmpty &&
         record.gender != 'Unavailable';
+    final showSecondaryBreed =
+        hasBreed &&
+        record.secondaryBreed != null &&
+        record.secondaryBreed!.isNotEmpty &&
+        record.secondaryBreedConfidence != null &&
+        ((record.secondaryBreedConfidence! >= 0.10) ||
+            ((record.breedConfidence ?? 0) - record.secondaryBreedConfidence!) <=
+                0.15);
 
     if (!hasBreed && !hasGender) return const SizedBox.shrink();
 
@@ -453,6 +520,18 @@ class _TagsRow extends StatelessWidget {
               border: Border.all(color: brand.purple, width: 1.5),
             ),
             child: Label(record.breed!, variant: LabelVariant.tag),
+          ),
+        if (showSecondaryBreed)
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: spacing.m,
+              vertical: spacing.sm,
+            ),
+            decoration: BoxDecoration(
+              borderRadius: context.radius.lg,
+              border: Border.all(color: brand.purple, width: 1.5),
+            ),
+            child: Label(record.secondaryBreed!, variant: LabelVariant.tag),
           ),
       ],
     );

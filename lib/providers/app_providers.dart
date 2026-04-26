@@ -12,6 +12,7 @@ import '../core/ml/audio_preprocessor.dart';
 import '../core/ml/image_preprocessor.dart';
 import '../core/ml/inference_runner.dart';
 import '../services/audio_service.dart';
+import '../services/android_breed_model_service.dart';
 import '../services/backup_service.dart';
 import '../services/camera_service.dart';
 import '../services/database_service.dart';
@@ -45,6 +46,10 @@ final backupServiceProvider = Provider<BackupService>((ref) {
 
 final modelDownloadServiceProvider = Provider<ModelDownloadService>(
   (ref) => ModelDownloadService(),
+);
+
+final androidBreedModelServiceProvider = Provider<AndroidBreedModelService>(
+  (ref) => AndroidBreedModelService(),
 );
 
 final startupServiceProvider = Provider<StartupService>(
@@ -93,6 +98,7 @@ final breedRepositoryProvider = Provider<BreedRepository>(
     inferenceRunner: ref.watch(breedInferenceRunnerProvider),
     modelDownloadService: ref.watch(modelDownloadServiceProvider),
     imagePreprocessor: ref.watch(imagePreprocessorProvider),
+    androidBreedModelService: ref.watch(androidBreedModelServiceProvider),
   ),
 );
 

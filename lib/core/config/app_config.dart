@@ -11,6 +11,8 @@ abstract final class AppConfig {
 
   static const String breedModelFilename = 'breed_model.tflite';
   static const String genderModelFilename = 'gender_model.tflite';
+  static const String breedModelAssetPath = 'assets/models/breed_model.tflite';
+  static const String genderModelAssetPath = 'assets/models/gender_model.tflite';
 
   static const String breedModelSha256 = String.fromEnvironment('BREED_MODEL_SHA256');
   static const String genderModelSha256 = String.fromEnvironment('GENDER_MODEL_SHA256');
@@ -19,6 +21,7 @@ abstract final class AppConfig {
     label: 'breed',
     filename: breedModelFilename,
     url: breedModelUrl,
+    assetPath: breedModelAssetPath,
     sha256: breedModelSha256,
     usePlaceholder: usePlaceholders || breedModelUrl.isEmpty,
   );
@@ -27,6 +30,7 @@ abstract final class AppConfig {
     label: 'gender',
     filename: genderModelFilename,
     url: genderModelUrl,
+    assetPath: genderModelAssetPath,
     sha256: genderModelSha256,
     usePlaceholder: usePlaceholders || genderModelUrl.isEmpty,
   );

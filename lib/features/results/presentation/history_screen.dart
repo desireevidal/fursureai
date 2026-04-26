@@ -23,6 +23,9 @@ class HistoryScreen extends ConsumerStatefulWidget {
 }
 
 class _HistoryScreenState extends ConsumerState<HistoryScreen> {
+  static const String _allBreedsValue = '__all_breeds__';
+  static const String _allGendersValue = '__all_genders__';
+
   String _searchQuery = '';
   String? _selectedBreed;
   String? _selectedGender;
@@ -117,13 +120,19 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                             genderOptions: genderOptions,
                             selectedBreed: _selectedBreed,
                             selectedGender: _selectedGender,
+                            allBreedsValue: _allBreedsValue,
+                            allGendersValue: _allGendersValue,
                             sortMostRecent: _sortMostRecent,
                             onSortChanged: (value) =>
                                 setState(() => _sortMostRecent = value),
-                            onBreedChanged: (value) =>
-                                setState(() => _selectedBreed = value),
-                            onGenderChanged: (value) =>
-                                setState(() => _selectedGender = value),
+                            onBreedChanged: (value) => setState(
+                              () => _selectedBreed =
+                                  value == _allBreedsValue ? null : value,
+                            ),
+                            onGenderChanged: (value) => setState(
+                              () => _selectedGender =
+                                  value == _allGendersValue ? null : value,
+                            ),
                           ),
                           if (_isSelectionMode)
                             _SelectionActionBar(
@@ -804,6 +813,8 @@ class _FilterRow extends StatelessWidget {
     required this.genderOptions,
     required this.selectedBreed,
     required this.selectedGender,
+    required this.allBreedsValue,
+    required this.allGendersValue,
     required this.sortMostRecent,
     required this.onSortChanged,
     required this.onBreedChanged,
@@ -814,10 +825,12 @@ class _FilterRow extends StatelessWidget {
   final List<String> genderOptions;
   final String? selectedBreed;
   final String? selectedGender;
+  final String allBreedsValue;
+  final String allGendersValue;
   final bool sortMostRecent;
   final ValueChanged<bool> onSortChanged;
-  final ValueChanged<String?> onBreedChanged;
-  final ValueChanged<String?> onGenderChanged;
+  final ValueChanged<String> onBreedChanged;
+  final ValueChanged<String> onGenderChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -845,25 +858,35 @@ class _FilterRow extends StatelessWidget {
             ],
             onSelected: onSortChanged,
           ),
-          _CollectionChipButton<String?>(
+          _CollectionChipButton<String>(
             label: selectedBreed ?? 'Breed',
-            value: selectedBreed,
+            value: selectedBreed ?? allBreedsValue,
+            icon: selectedBreed != null ? Icons.pets_rounded : null,
             options: [
-              const PopupMenuItem<String?>(value: null, child: Text('All breeds')),
+              PopupMenuItem<String>(
+                value: allBreedsValue,
+                child: const Text('All breeds'),
+              ),
               ...breedOptions.map(
-                (breed) => PopupMenuItem<String?>(value: breed, child: Text(breed)),
+                (breed) => PopupMenuItem<String>(value: breed, child: Text(breed)),
               ),
             ],
             onSelected: onBreedChanged,
           ),
-          _CollectionChipButton<String?>(
+          _CollectionChipButton<String>(
             label: selectedGender ?? 'Gender',
-            value: selectedGender,
+            value: selectedGender ?? allGendersValue,
+            icon: _selectedGenderIcon(selectedGender),
             options: [
-              const PopupMenuItem<String?>(value: null, child: Text('All genders')),
+              PopupMenuItem<String>(
+                value: allGendersValue,
+                child: const Text('All genders'),
+              ),
               ...genderOptions.map(
-                (gender) =>
-                    PopupMenuItem<String?>(value: gender, child: Text(gender)),
+                (gender) => PopupMenuItem<String>(
+                  value: gender,
+                  child: Text(gender),
+                ),
               ),
             ],
             onSelected: onGenderChanged,
@@ -871,6 +894,17 @@ class _FilterRow extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  IconData? _selectedGenderIcon(String? gender) {
+    switch (gender?.toLowerCase()) {
+      case 'male':
+        return Icons.male_rounded;
+      case 'female':
+        return Icons.female_rounded;
+      default:
+        return null;
+    }
   }
 }
 

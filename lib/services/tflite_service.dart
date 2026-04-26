@@ -26,7 +26,9 @@ class TfliteService {
 
     try {
       _interpreter?.close();
-      _interpreter = Interpreter.fromFile(File(modelPath));
+      _interpreter = modelPath.startsWith('asset:')
+          ? await Interpreter.fromAsset(modelPath.substring(6))
+          : Interpreter.fromFile(File(modelPath));
       _loadedModelPath = modelPath;
     } catch (e) {
       throw ModelLoadException('Failed to load model: $e');

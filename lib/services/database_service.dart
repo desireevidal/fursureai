@@ -18,7 +18,7 @@ class DatabaseService {
     final dbPath = join(dir.path, 'fursure.db');
     return openDatabase(
       dbPath,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE predictions(
@@ -26,12 +26,24 @@ class DatabaseService {
             catName TEXT,
             breed TEXT,
             breedConfidence REAL,
+            secondaryBreed TEXT,
+            secondaryBreedConfidence REAL,
             gender TEXT,
             genderConfidence REAL,
             timestamp TEXT NOT NULL,
             imagePath TEXT
           )
         ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute(
+            'ALTER TABLE predictions ADD COLUMN secondaryBreed TEXT',
+          );
+          await db.execute(
+            'ALTER TABLE predictions ADD COLUMN secondaryBreedConfidence REAL',
+          );
+        }
       },
     );
   }

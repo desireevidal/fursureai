@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:fursure/core/config/app_config.dart';
 import 'package:fursure/core/ml/image_preprocessor.dart';
 import 'package:fursure/core/ml/inference_runner.dart';
+import 'package:fursure/services/android_breed_model_service.dart';
 import 'package:fursure/services/model_download_service.dart';
 import 'package:fursure/services/tflite_service.dart';
 
@@ -15,14 +16,22 @@ class BreedRepository {
     required this.inferenceRunner,
     required this.modelDownloadService,
     required this.imagePreprocessor,
+    this.androidBreedModelService,
   });
 
   final TfliteService tfliteService;
   final InferenceRunner inferenceRunner;
   final ModelDownloadService modelDownloadService;
   final ImagePreprocessor imagePreprocessor;
+  final AndroidBreedModelService? androidBreedModelService;
 
   Future<BreedResult> predict(File imageFile) async {
+    if (Platform.isAndroid && androidBreedModelService != null) {
+      final inputBytes = imagePreprocessor.preprocessBytes(imageFile);
+      final output = await androidBreedModelService!.run(inputBytes);
+      return _parseOutput(output);
+    }
+
     final modelPath = await modelDownloadService.ensureModel(AppConfig.breedSpec);
     await tfliteService.loadModel(modelPath);
 
