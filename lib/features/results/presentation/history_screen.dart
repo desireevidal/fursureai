@@ -50,18 +50,24 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final viewportWidth = MediaQuery.sizeOf(context).width;
     final resultsAsync = ref.watch(resultsControllerProvider);
     final lo = context.layout;
-    final overlap = context.radius.xl.topLeft.x;
-    final inset = context.spacing.sm;
+    final overlap = viewportWidth >= 720
+        ? context.radius.xl.topLeft.x
+        : context.radius.lg.topLeft.x;
+    final inset = viewportWidth >= 720 ? context.spacing.xs : 0.0;
     final surfaceColor = Theme.of(context).colorScheme.surface;
+    final contentMaxWidth = _adaptiveContentMaxWidth(viewportWidth);
 
     return AppPage(
       hasBottomNav: true,
       horizontalPadding: false,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _CollectionHeader(
+            maxContentWidth: contentMaxWidth,
             isSelectionMode: _isSelectionMode,
             selectedCount: _selectedIds.length,
             showSearch: _showSearch,
@@ -78,85 +84,96 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             onDeleteSelected: _deleteSelected,
           ),
           Expanded(
-            child: Transform.translate(
-              offset: Offset(0, -overlap),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: surfaceColor,
-                  borderRadius: BorderRadius.only(
-                    topLeft: context.radius.xxl.topLeft,
-                    topRight: context.radius.xxl.topRight,
-                  ),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: Padding(
-                  padding: EdgeInsets.only(top: inset),
-                  child: resultsAsync.when(
-                    loading: () =>
-                        const Center(child: CircularProgressIndicator()),
-                    error: (e, _) => Center(
-                      child: Label(
-                        'Failed to load history.',
-                        variant: LabelVariant.body,
-                        size: 16,
-                        color: Theme.of(context).colorScheme.error,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Transform.translate(
+                  offset: Offset(0, -overlap),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: surfaceColor,
+                      borderRadius: BorderRadius.only(
+                        topLeft: context.radius.xxl.topLeft,
+                        topRight: context.radius.xxl.topRight,
                       ),
                     ),
-                    data: (records) {
-                      if (records.isEmpty) return const _EmptyState();
-
-                      final breedOptions = _collectValues(
-                        records.map((record) => record.breed),
-                      );
-                      final genderOptions = _collectValues(
-                        records.map((record) => record.gender),
-                      );
-                      final filteredRecords = _applyFilters(records);
-
-                      return Column(
-                        children: [
-                          _FilterRow(
-                            breedOptions: breedOptions,
-                            genderOptions: genderOptions,
-                            selectedBreed: _selectedBreed,
-                            selectedGender: _selectedGender,
-                            allBreedsValue: _allBreedsValue,
-                            allGendersValue: _allGendersValue,
-                            sortMostRecent: _sortMostRecent,
-                            onSortChanged: (value) =>
-                                setState(() => _sortMostRecent = value),
-                            onBreedChanged: (value) => setState(
-                              () => _selectedBreed =
-                                  value == _allBreedsValue ? null : value,
-                            ),
-                            onGenderChanged: (value) => setState(
-                              () => _selectedGender =
-                                  value == _allGendersValue ? null : value,
-                            ),
-                          ),
-                          if (_isSelectionMode)
-                            _SelectionActionBar(
-                              selectedCount: _selectedIds.length,
-                              onSelectAll: () => _selectAllVisible(filteredRecords),
-                              onClearSelection: _clearSelection,
-                            ),
-                          Expanded(
-                            child: filteredRecords.isEmpty
-                                ? const _NoMatchesState()
-                                : _HistoryGrid(
-                                    records: filteredRecords,
-                                    isSelectionMode: _isSelectionMode,
-                                    selectedIds: _selectedIds,
-                                    onToggleSelection: _toggleSelection,
-                                    onStartSelection: _startSelection,
-                                  ),
-                          ),
-                        ],
-                      );
-                    },
                   ),
                 ),
-              ),
+                Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: contentMaxWidth),
+                    child: Padding(
+                      padding: EdgeInsets.only(top: inset),
+                      child: resultsAsync.when(
+                        loading: () =>
+                            const Center(child: CircularProgressIndicator()),
+                        error: (e, _) => Center(
+                          child: Label(
+                            'Failed to load history.',
+                            variant: LabelVariant.body,
+                            size: 16,
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                        ),
+                        data: (records) {
+                          if (records.isEmpty) return const _EmptyState();
+
+                          final breedOptions = _collectValues(
+                            records.map((record) => record.breed),
+                          );
+                          final genderOptions = _collectValues(
+                            records.map((record) => record.gender),
+                          );
+                          final filteredRecords = _applyFilters(records);
+
+                          return Column(
+                            children: [
+                              _FilterRow(
+                                breedOptions: breedOptions,
+                                genderOptions: genderOptions,
+                                selectedBreed: _selectedBreed,
+                                selectedGender: _selectedGender,
+                                allBreedsValue: _allBreedsValue,
+                                allGendersValue: _allGendersValue,
+                                sortMostRecent: _sortMostRecent,
+                                onSortChanged: (value) =>
+                                    setState(() => _sortMostRecent = value),
+                                onBreedChanged: (value) => setState(
+                                  () => _selectedBreed =
+                                      value == _allBreedsValue ? null : value,
+                                ),
+                                onGenderChanged: (value) => setState(
+                                  () => _selectedGender =
+                                      value == _allGendersValue ? null : value,
+                                ),
+                              ),
+                              if (_isSelectionMode)
+                                _SelectionActionBar(
+                                  selectedCount: _selectedIds.length,
+                                  onSelectAll: () =>
+                                      _selectAllVisible(filteredRecords),
+                                  onClearSelection: _clearSelection,
+                                ),
+                              Expanded(
+                                child: filteredRecords.isEmpty
+                                    ? const _NoMatchesState()
+                                    : _HistoryGrid(
+                                        records: filteredRecords,
+                                        isSelectionMode: _isSelectionMode,
+                                        selectedIds: _selectedIds,
+                                        onToggleSelection: _toggleSelection,
+                                        onStartSelection: _startSelection,
+                                      ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           SizedBox(height: lo.navBarBottomGap),
@@ -543,10 +560,25 @@ class _HistoryGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final spacing = context.spacing;
     final lo = context.layout;
+    final screenSize = MediaQuery.sizeOf(context);
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final int columns = constraints.maxWidth >= 720 ? 3 : 2;
+        final isLandscape = screenSize.width > screenSize.height;
+        final int columns = switch (constraints.maxWidth) {
+          >= 1200 => isLandscape ? 5 : 4,
+          >= 900 => isLandscape ? 4 : 3,
+          >= 760 => 3,
+          _ => 2,
+        };
+        final childAspectRatio = switch ((constraints.maxWidth, isLandscape)) {
+          (>= 1200, true) => 1.18,
+          (>= 900, true) => 1.08,
+          (>= 760, true) => 0.98,
+          (_, true) => 0.92,
+          (>= 1200, false) => 0.84,
+          _ => 0.83,
+        };
 
         return GridView.builder(
           padding: EdgeInsets.fromLTRB(
@@ -559,7 +591,7 @@ class _HistoryGrid extends StatelessWidget {
             crossAxisCount: columns,
             crossAxisSpacing: spacing.sm,
             mainAxisSpacing: spacing.sm,
-            childAspectRatio: 0.83,
+            childAspectRatio: childAspectRatio,
           ),
           itemCount: records.length,
           itemBuilder: (context, index) {
@@ -648,6 +680,7 @@ class _EmptyState extends StatelessWidget {
 
 class _CollectionHeader extends StatelessWidget {
   const _CollectionHeader({
+    required this.maxContentWidth,
     required this.isSelectionMode,
     required this.selectedCount,
     required this.showSearch,
@@ -658,6 +691,7 @@ class _CollectionHeader extends StatelessWidget {
     required this.onDeleteSelected,
   });
 
+  final double maxContentWidth;
   final bool isSelectionMode;
   final int selectedCount;
   final bool showSearch;
@@ -690,121 +724,133 @@ class _CollectionHeader extends StatelessWidget {
           colors: [brand.pink, brand.purple, brand.deepPurple],
         ),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxContentWidth),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              SizedBox(
-                width: lo.screenPadH + lo.iconContainerS,
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Padding(
-                    padding: EdgeInsets.only(left: lo.screenPadH, top: spacing.xs),
-                    child: isSelectionMode
-                        ? IconButton(
-                            onPressed: onExitSelection,
-                            tooltip: 'Close selection',
-                            icon: Icon(
-                              Icons.close_rounded,
-                              color: Colors.white,
-                              size: lo.iconSizeM,
-                            ),
-                          )
-                        : AppBackButton(
-                            onPressed: () => context.go('/home'),
-                            color: Colors.white,
-                            padded: false,
-                          ),
-                  ),
+                Row(
+                  children: [
+                    SizedBox(
+                      width: lo.screenPadH + lo.iconContainerS,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Padding(
+                          padding: EdgeInsets.only(left: lo.screenPadH, top: spacing.xs),
+                          child: isSelectionMode
+                              ? IconButton(
+                                  onPressed: onExitSelection,
+                                  tooltip: 'Close selection',
+                                  icon: Icon(
+                                    Icons.close_rounded,
+                                    color: Colors.white,
+                                    size: lo.iconSizeM,
+                                  ),
+                                )
+                              : AppBackButton(
+                                  onPressed: () => context.go('/home'),
+                                  color: Colors.white,
+                                  padded: false,
+                                ),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(top: spacing.sm),
+                        child: Label(
+                          isSelectionMode
+                              ? '$selectedCount selected'
+                              : 'My Clawlection',
+                          variant: LabelVariant.title,
+                          size: 22,
+                          weight: FontWeight.w700,
+                          color: Colors.white,
+                          align: TextAlign.center,
+                          uppercase: false,
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      width: lo.screenPadH + lo.iconContainerS,
+                      child: Padding(
+                        padding: EdgeInsets.only(top: spacing.xs, right: spacing.sm),
+                        child: isSelectionMode
+                            ? IconButton(
+                                onPressed: () => onDeleteSelected(),
+                                tooltip: 'Delete selected',
+                                icon: Icon(
+                                  Icons.delete_outline_rounded,
+                                  color: Colors.white,
+                                  size: lo.iconSizeM,
+                                ),
+                              )
+                            : IconButton(
+                                onPressed: onSearchToggle,
+                                tooltip: 'Search entries',
+                                icon: Icon(
+                                  showSearch
+                                      ? Icons.close_rounded
+                                      : Icons.search_rounded,
+                                  color: Colors.white,
+                                  size: lo.iconSizeM,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(top: spacing.sm),
-                  child: Label(
-                    isSelectionMode
-                        ? '$selectedCount selected'
-                        : 'My Clawlection',
-                    variant: LabelVariant.title,
-                    size: 22,
-                    weight: FontWeight.w700,
-                    color: Colors.white,
-                    align: TextAlign.center,
-                    uppercase: false,
-                  ),
-                ),
-              ),
-              SizedBox(
-                width: lo.screenPadH + lo.iconContainerS,
-                child: Padding(
-                  padding: EdgeInsets.only(top: spacing.xs, right: spacing.sm),
-                  child: isSelectionMode
-                      ? IconButton(
-                          onPressed: () => onDeleteSelected(),
-                          tooltip: 'Delete selected',
-                          icon: Icon(
-                            Icons.delete_outline_rounded,
-                            color: Colors.white,
-                            size: lo.iconSizeM,
-                          ),
-                        )
-                      : IconButton(
-                          onPressed: onSearchToggle,
-                          tooltip: 'Search entries',
-                          icon: Icon(
-                            showSearch
-                                ? Icons.close_rounded
-                                : Icons.search_rounded,
-                            color: Colors.white,
-                            size: lo.iconSizeM,
+                if (!isSelectionMode && showSearch) ...[
+                  SizedBox(height: spacing.sm),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: lo.screenPadH),
+                    child: TextField(
+                      controller: searchController,
+                      onChanged: onSearchChanged,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        hintText: 'Search by name, breed, or gender',
+                        hintStyle: const TextStyle(color: Colors.white70),
+                        prefixIcon: const Icon(
+                          Icons.search_rounded,
+                          color: Colors.white70,
+                        ),
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.14),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: spacing.m,
+                          vertical: spacing.sm,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: context.radius.xxl,
+                          borderSide: BorderSide(
+                            color: Colors.white.withValues(alpha: 0.16),
                           ),
                         ),
-                ),
-              ),
-            ],
-          ),
-          if (!isSelectionMode && showSearch) ...[
-            SizedBox(height: spacing.sm),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: lo.screenPadH),
-              child: TextField(
-                controller: searchController,
-                onChanged: onSearchChanged,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: 'Search by name, breed, or gender',
-                  hintStyle: const TextStyle(color: Colors.white70),
-                  prefixIcon: const Icon(
-                    Icons.search_rounded,
-                    color: Colors.white70,
-                  ),
-                  filled: true,
-                  fillColor: Colors.white.withValues(alpha: 0.14),
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: spacing.m,
-                    vertical: spacing.sm,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: context.radius.xxl,
-                    borderSide: BorderSide(
-                      color: Colors.white.withValues(alpha: 0.16),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: context.radius.xxl,
+                          borderSide: BorderSide(
+                            color: Colors.white.withValues(alpha: 0.34),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: context.radius.xxl,
-                    borderSide: BorderSide(
-                      color: Colors.white.withValues(alpha: 0.34),
-                    ),
-                  ),
-                ),
-              ),
+                ],
+              ],
             ),
-          ],
-        ],
-      ),
-    );
+          ),
+        ),
+      );
+    }
   }
+
+double _adaptiveContentMaxWidth(double width) {
+  if (width >= 1200) return width - 96;
+  if (width >= 900) return width - 72;
+  if (width >= 720) return width - 40;
+  return width;
 }
 
 class _FilterRow extends StatelessWidget {
@@ -836,14 +882,16 @@ class _FilterRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final spacing = context.spacing;
     final lo = context.layout;
+    final viewportWidth = MediaQuery.sizeOf(context).width;
+    final verticalPadding = viewportWidth >= 720 ? spacing.sm : 4.0;
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: EdgeInsets.fromLTRB(
         lo.screenPadH,
-        spacing.sm,
+        verticalPadding,
         lo.screenPadH,
-        spacing.sm,
+        verticalPadding,
       ),
       child: Row(
         children: [

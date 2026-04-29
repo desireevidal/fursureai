@@ -96,6 +96,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
   @override
   void dispose() {
     _predictionListener.close();
+    _deleteSessionAudioFile(_session.audioPath);
     super.dispose();
   }
 
@@ -119,6 +120,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
   }
 
   void _onAudioSelected(String path) {
+    _deleteSessionAudioFile(_session.audioPath, exceptPath: path);
     setState(() {
       _session = _session.copyWith(audioPath: path);
       _step = ScanStep.preview;
@@ -135,6 +137,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
   }
 
   void _retake() {
+    _deleteSessionAudioFile(_session.audioPath);
     setState(() {
       _session = const ScanSession();
       _step = ScanStep.photo;
@@ -153,6 +156,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     if (!mounted) return;
 
     if (shouldRerecord == true) {
+      _deleteSessionAudioFile(_session.audioPath);
       setState(() {
         _session = _session.copyWith(
           clearAudioPath: true,
@@ -189,6 +193,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     if (record != null) {
       await ref.read(resultsControllerProvider.notifier).saveResult(record);
     }
+    _deleteSessionAudioFile(_session.audioPath);
     if (mounted) context.go('/history');
   }
 
@@ -203,6 +208,24 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
 
     if (shouldDiscard == true && mounted) {
       _retake();
+    }
+  }
+
+  Future<void> _deleteSessionAudioFile(
+    String? path, {
+    String? exceptPath,
+  }) async {
+    if (path == null || path == exceptPath) {
+      return;
+    }
+
+    try {
+      final file = File(path);
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (_) {
+      // ignore cleanup failures
     }
   }
 

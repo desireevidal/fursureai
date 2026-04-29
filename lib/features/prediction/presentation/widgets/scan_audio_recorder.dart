@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +12,7 @@ import 'package:fursure/core/widgets/buttons.dart';
 import 'package:fursure/providers/app_providers.dart';
 import 'package:fursure/features/prediction/data/prediction_constants.dart';
 import 'prediction_step_layout.dart';
+import 'scan_audio_trim_editor.dart';
 import 'scan_tips_sheet.dart';
 
 class ScanAudioRecorder extends ConsumerStatefulWidget {
@@ -49,7 +51,7 @@ class _ScanAudioRecorderState extends ConsumerState<ScanAudioRecorder>
     seconds: PredictionConstants.audioMinDurationSeconds,
   );
   static const _maxRecordDuration = Duration(
-    seconds: PredictionConstants.audioMaxDurationSeconds,
+    seconds: 15,
   );
 
   bool get _canStop => _stopwatch.elapsed >= _minRecordDuration;
@@ -113,7 +115,7 @@ class _ScanAudioRecorderState extends ConsumerState<ScanAudioRecorder>
     final audioService = ref.read(audioServiceProvider);
     final path = await audioService.stopRecording();
     if (path != null && mounted) {
-      widget.onAudioSelected(path);
+      await _openTrimEditor(path, deleteSourceAfterEditing: true);
     }
   }
 
@@ -131,7 +133,44 @@ class _ScanAudioRecorderState extends ConsumerState<ScanAudioRecorder>
       return;
     }
 
-    widget.onAudioSelected(path);
+    await _openTrimEditor(path);
+  }
+
+  Future<void> _openTrimEditor(
+    String path, {
+    bool deleteSourceAfterEditing = false,
+  }) async {
+    final audioService = ref.read(audioServiceProvider);
+    final trimmedPath = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => ScanAudioTrimEditor(
+          sourcePath: path,
+          audioService: audioService,
+        ),
+      ),
+    );
+
+    if (deleteSourceAfterEditing) {
+      await _deleteIfExists(path, exceptPath: trimmedPath);
+    }
+
+    if (!mounted || trimmedPath == null) {
+      return;
+    }
+
+    widget.onAudioSelected(trimmedPath);
+  }
+
+  Future<void> _deleteIfExists(String path, {String? exceptPath}) async {
+    if (exceptPath != null && path == exceptPath) return;
+    try {
+      final file = File(path);
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (_) {
+      // ignore cleanup failures
+    }
   }
 
   bool _hasAcceptedExtension(String path) {
@@ -164,9 +203,9 @@ class _ScanAudioRecorderState extends ConsumerState<ScanAudioRecorder>
     return PredictionStepLayout(
       title: 'Record a Meow',
       subtitle: _isRecording
-          ? 'Listening\u2026 Tap Stop when done.'
+          ? 'Listening\u2026 You can trim the best 1\u20132 seconds after recording.'
           : 'Tap the button and let your cat speak!\n'
-                'A 1\u20132 second meow works best.',
+                'Record freely, then trim a clear 1\u20132 second meow.',
       illustration: _isRecording
           ? _AmplitudeRecordingIndicator(
               amplitude: _currentAmplitude,

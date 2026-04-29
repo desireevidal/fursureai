@@ -128,6 +128,7 @@ class _DetailView extends StatefulWidget {
 class _DetailViewState extends State<_DetailView> {
   @override
   Widget build(BuildContext context) {
+    final viewportWidth = MediaQuery.sizeOf(context).width;
     final topPad = MediaQuery.paddingOf(context).top;
     const headerBarHeight = 56.0;
     const circleSize = 140.0;
@@ -137,6 +138,7 @@ class _DetailViewState extends State<_DetailView> {
     final brand = context.brand;
     final spacing = context.spacing;
     final lo = context.layout;
+    final contentMaxWidth = _adaptiveContentMaxWidth(viewportWidth);
     final expandedPurpleHeight = topPad + headerBarHeight + surfaceOverlap;
     final topSpacer = expandedPurpleHeight - surfaceOverlap;
     final metaTopPadding = lo.screenPadV;
@@ -190,180 +192,148 @@ class _DetailViewState extends State<_DetailView> {
             left: 0,
             right: 0,
             bottom: 0,
-            child: Stack(
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    borderRadius: BorderRadius.only(
-                      topLeft: context.radius.xxl.topLeft,
-                      topRight: context.radius.xxl.topRight,
-                    ),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                ),
-                IgnorePointer(
-                  child: Align(
-                    alignment: Alignment.topCenter,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          height: 18,
-                          color: Theme.of(context).colorScheme.surface,
-                        ),
-                        Container(
-                          height: 44,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.only(
-                              topLeft: context.radius.xxl.topLeft,
-                              topRight: context.radius.xxl.topRight,
-                            ),
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Theme.of(context).colorScheme.surface,
-                                Theme.of(
-                                  context,
-                                ).colorScheme.surface.withValues(alpha: 0.0),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SizedBox(height: topSpacer),
-              Expanded(
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(
-                    parent: ClampingScrollPhysics(),
-                  ),
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      lo.screenPadH,
-                      metaTopPadding,
-                      lo.screenPadH,
-                      0,
-                    ),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: circleSize,
-                          height: circleSize,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [brand.pink, brand.purple, brand.deepPurple],
-                            ),
-                          ),
-                          padding: const EdgeInsets.all(3),
-                          child: ClipOval(
-                            child: widget.record.imagePath != null
-                                ? Image.file(
-                                    File(widget.record.imagePath!),
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, _) => ColoredBox(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.surfaceContainerHighest,
-                                      child: Icon(
-                                        Icons.broken_image_outlined,
-                                        size: 40,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onSurfaceVariant,
-                                      ),
-                                    ),
-                                  )
-                                : ColoredBox(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.surfaceContainerHighest,
-                                  ),
-                          ),
-                        ),
-                        SizedBox(height: spacing.lg),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Flexible(
-                              child: Label(
-                                widget.record.catName?.isNotEmpty == true
-                                    ? widget.record.catName!
-                                    : 'Unknown Cat',
-                                variant: LabelVariant.h2,
-                                size: 28,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                uppercase: false,
-                              ),
-                            ),
-                            if (widget.onRename != null) ...[
-                              SizedBox(width: spacing.sm),
-                              GestureDetector(
-                                onTap: () => _editName(context),
-                                child: Icon(
-                                  Icons.edit_outlined,
-                                  size: 20,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                        SizedBox(height: spacing.xs),
-                        Label(
-                          _timestamp(widget.record.timestamp),
-                          variant: LabelVariant.caption,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurfaceVariant,
-                          uppercase: false,
-                        ),
-                        SizedBox(height: spacing.m),
-                        _TagsRow(record: widget.record),
-                        SizedBox(height: lo.screenPadV),
-                        if (genderResult != null) ...[
-                          Semantics(
-                            label: 'Gender: ${genderResult.gender}',
-                            child: GenderResultCard(result: genderResult),
-                          ),
-                          SizedBox(height: spacing.m),
-                        ],
-                        if (breedResult != null) ...[
-                          Semantics(
-                            label: 'Breed: ${breedResult.breed}',
-                            child: BreedResultCard(result: breedResult),
-                          ),
-                          SizedBox(height: spacing.m),
-                          BreedInfoPreviewList(
-                            rawBreed: breedResult.shouldShowSecondary
-                                ? '${breedResult.breed}, ${breedResult.secondaryBreed}'
-                                : breedResult.breed,
-                          ),
-                        ],
-                        if (breedResult == null && genderResult == null)
-                          const UnavailableCard(),
-                        SizedBox(height: lo.navBarTotalHeight + spacing.xl),
-                      ],
-                    ),
-                  ),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.only(
+                  topLeft: context.radius.xxl.topLeft,
+                  topRight: context.radius.xxl.topRight,
                 ),
               ),
-            ],
+              clipBehavior: Clip.antiAlias,
+            ),
+          ),
+          Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: contentMaxWidth),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(height: topSpacer),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(
+                        parent: ClampingScrollPhysics(),
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          lo.screenPadH,
+                          metaTopPadding,
+                          lo.screenPadH,
+                          0,
+                        ),
+                        child: Column(
+                          children: [
+                            Container(
+                              width: circleSize,
+                              height: circleSize,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [brand.pink, brand.purple, brand.deepPurple],
+                                ),
+                              ),
+                              padding: const EdgeInsets.all(3),
+                              child: ClipOval(
+                                child: widget.record.imagePath != null
+                                    ? Image.file(
+                                        File(widget.record.imagePath!),
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, _) => ColoredBox(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.surfaceContainerHighest,
+                                          child: Icon(
+                                            Icons.broken_image_outlined,
+                                            size: 40,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurfaceVariant,
+                                          ),
+                                        ),
+                                      )
+                                    : ColoredBox(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.surfaceContainerHighest,
+                                      ),
+                              ),
+                            ),
+                            SizedBox(height: spacing.lg),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                  child: Label(
+                                    widget.record.catName?.isNotEmpty == true
+                                        ? widget.record.catName!
+                                        : 'Unknown Cat',
+                                    variant: LabelVariant.h2,
+                                    size: 28,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    uppercase: false,
+                                  ),
+                                ),
+                                if (widget.onRename != null) ...[
+                                  SizedBox(width: spacing.sm),
+                                  GestureDetector(
+                                    onTap: () => _editName(context),
+                                    child: Icon(
+                                      Icons.edit_outlined,
+                                      size: 20,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            SizedBox(height: spacing.xs),
+                            Label(
+                              _timestamp(widget.record.timestamp),
+                              variant: LabelVariant.caption,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                              uppercase: false,
+                            ),
+                            SizedBox(height: spacing.m),
+                            _TagsRow(record: widget.record),
+                            SizedBox(height: lo.screenPadV),
+                            if (genderResult != null) ...[
+                              Semantics(
+                                label: 'Gender: ${genderResult.gender}',
+                                child: GenderResultCard(result: genderResult),
+                              ),
+                              SizedBox(height: spacing.m),
+                            ],
+                            if (breedResult != null) ...[
+                              Semantics(
+                                label: 'Breed: ${breedResult.breed}',
+                                child: BreedResultCard(result: breedResult),
+                              ),
+                              SizedBox(height: spacing.m),
+                              BreedInfoPreviewList(
+                                rawBreed: breedResult.shouldShowSecondary
+                                    ? '${breedResult.breed}, ${breedResult.secondaryBreed}'
+                                    : breedResult.breed,
+                              ),
+                            ],
+                            if (breedResult == null && genderResult == null)
+                              const UnavailableCard(),
+                            SizedBox(height: lo.navBarTotalHeight + spacing.xl),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
           Positioned(
             top: 0,
@@ -536,4 +506,10 @@ class _TagsRow extends StatelessWidget {
       ],
     );
   }
+}
+
+double _adaptiveContentMaxWidth(double width) {
+  if (width >= 1100) return 760;
+  if (width >= 800) return 680;
+  return width;
 }
