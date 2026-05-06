@@ -487,6 +487,7 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
     final surface = Theme.of(context).colorScheme.surface;
     final onSurface = Theme.of(context).colorScheme.onSurface;
     final onSurfaceVariant = Theme.of(context).colorScheme.onSurfaceVariant;
+    final onPrimary = Theme.of(context).colorScheme.onPrimary;
     final viewportWidth = MediaQuery.sizeOf(context).width;
     final contentMaxWidth = viewportWidth >= 900
         ? 760.0
@@ -494,6 +495,8 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
         ? 640.0
         : double.infinity;
     final timerFontSize = (viewportWidth * 0.08).clamp(44.0, 54.0).toDouble();
+    final topPad = MediaQuery.paddingOf(context).top;
+    const headerHeight = 72.0;
 
     return AppPage(
       horizontalPadding: false,
@@ -505,9 +508,9 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
             Padding(
               padding: EdgeInsets.fromLTRB(
                 spacing.m,
-                spacing.sm,
                 spacing.m,
-                spacing.sm,
+                spacing.m,
+                spacing.lg,
               ),
               child: Row(
                 children: [
@@ -548,6 +551,7 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
                 ],
               ),
             ),
+            SizedBox(height: spacing.m),
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
@@ -591,10 +595,9 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
                                       constraints.maxWidth,
                                       1,
                                     ).toDouble();
-                                    final timelineWidth =
-                                        _timelineContentWidthFor(
-                                          viewportWidth: timelineViewportWidth,
-                                        );
+                                    final timelineWidth = _timelineContentWidthFor(
+                                      viewportWidth: timelineViewportWidth,
+                                    );
                                     _cacheTimelineMetrics(
                                       viewportWidth: timelineViewportWidth,
                                       contentWidth: timelineWidth,
@@ -646,9 +649,7 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
                                           Label(
                                             _errorMessage!,
                                             variant: LabelVariant.caption,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .error,
+                                            color: Theme.of(context).colorScheme.error,
                                             align: TextAlign.center,
                                             uppercase: false,
                                           ),
@@ -759,16 +760,16 @@ class _TransportButton extends StatelessWidget {
         height: isPrimary ? 68 : 56,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: isPrimary ? brand.purple : brand.pink,
+          color: isPrimary ? brand.pink : brand.purple,
           boxShadow: [
             BoxShadow(
-              color: (isPrimary ? brand.purple : brand.pink).withValues(alpha: 0.24),
+              color: (isPrimary ? brand.pink : brand.purple).withValues(alpha: 0.24),
               blurRadius: 16,
               offset: const Offset(0, 6),
             ),
           ],
           border: isPrimary
-              ? Border.all(color: brand.pink.withValues(alpha: 0.45), width: 2)
+              ? Border.all(color: brand.purple.withValues(alpha: 0.40), width: 2)
               : null,
         ),
         child: Icon(
