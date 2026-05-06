@@ -26,25 +26,71 @@ class AppShell extends StatelessWidget {
             left: 0,
             right: 0,
             bottom: 0,
-            height: lo.navBarTotalHeight + 96,
+            height: lo.navBarTotalHeight + 112,
             child: IgnorePointer(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    stops: const [0.0, 0.58, 0.82, 1.0],
-                    colors: [
-                      surface.withValues(alpha: 0.00),
-                      surface.withValues(alpha: 0.28),
-                      surface.withValues(alpha: 0.72),
-                      Color.alphaBlend(
-                        brand.purple.withValues(alpha: 0.10),
-                        surface.withValues(alpha: 0.96),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          stops: const [0.0, 0.42, 0.70, 1.0],
+                          colors: [
+                            surface.withValues(alpha: 0.00),
+                            surface.withValues(alpha: 0.14),
+                            surface.withValues(alpha: 0.72),
+                            Color.alphaBlend(
+                              brand.purple.withValues(alpha: 0.06),
+                              surface.withValues(alpha: 0.97),
+                            ),
+                          ],
+                        ),
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: lo.navBarBottomGap - 8,
+                    height: lo.navBarScanFabSize + 44,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            surface.withValues(alpha: 0.00),
+                            surface.withValues(alpha: 0.52),
+                            surface.withValues(alpha: 0.90),
+                          ],
+                          stops: const [0.0, 0.55, 1.0],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: lo.navBarSideMargin,
+                    right: lo.navBarSideMargin,
+                    bottom: lo.navBarBottomGap + 6,
+                    height: lo.navBarScanFabSize + 28,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: RadialGradient(
+                          center: const Alignment(0, 0.55),
+                          radius: 0.92,
+                          colors: [
+                            brand.pink.withValues(alpha: 0.14),
+                            brand.purple.withValues(alpha: 0.08),
+                            surface.withValues(alpha: 0.00),
+                          ],
+                          stops: const [0.0, 0.48, 1.0],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -146,21 +192,21 @@ class _CustomNavBarState extends State<_CustomNavBar>
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
-        lo.navBarSideMargin,
+        lo.navBarSideMargin + 4,
         0,
-        lo.navBarSideMargin,
-        lo.navBarBottomGap,
+        lo.navBarSideMargin + 4,
+        lo.navBarBottomGap + 4,
       ),
       child: SizedBox(
-        height: lo.navBarScanFabSize,
+        height: lo.navBarScanFabSize + 8,
         child: Stack(
           alignment: Alignment.center,
           children: [
             Positioned(
               left: 0,
               right: 0,
-              top: lo.navBarFabOverflow,
-              bottom: lo.navBarFabOverflow,
+              top: lo.navBarFabOverflow + 4,
+              bottom: lo.navBarFabOverflow + 4,
               child: Container(
                 decoration: BoxDecoration(
                   color: colorScheme.surface,

@@ -53,59 +53,55 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     final viewportWidth = MediaQuery.sizeOf(context).width;
     final resultsAsync = ref.watch(resultsControllerProvider);
     final lo = context.layout;
-    final overlap = viewportWidth >= 720
-        ? context.radius.xl.topLeft.x
-        : context.radius.lg.topLeft.x;
-    final inset = viewportWidth >= 720 ? context.spacing.xs : 0.0;
     final surfaceColor = Theme.of(context).colorScheme.surface;
     final contentMaxWidth = _adaptiveContentMaxWidth(viewportWidth);
+    final headerGradient = _collectionHeaderGradient(context.brand);
 
     return AppPage(
       hasBottomNav: true,
       horizontalPadding: false,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _CollectionHeader(
-            maxContentWidth: contentMaxWidth,
-            isSelectionMode: _isSelectionMode,
-            selectedCount: _selectedIds.length,
-            showSearch: _showSearch,
-            searchController: _searchController,
-            onSearchChanged: (value) => setState(() => _searchQuery = value),
-            onSearchToggle: () => setState(() {
-              _showSearch = !_showSearch;
-              if (!_showSearch) {
-                _searchQuery = '';
-                _searchController.clear();
-              }
-            }),
-            onExitSelection: _clearSelection,
-            onDeleteSelected: _deleteSelected,
-          ),
-          Expanded(
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Transform.translate(
-                  offset: Offset(0, -overlap),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: surfaceColor,
-                      borderRadius: BorderRadius.only(
-                        topLeft: context.radius.xxl.topLeft,
-                        topRight: context.radius.xxl.topRight,
-                      ),
-                    ),
-                  ),
+      backgroundColor: context.brand.purple,
+      child: DecoratedBox(
+        decoration: BoxDecoration(gradient: headerGradient),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _CollectionHeader(
+              maxContentWidth: contentMaxWidth,
+              isSelectionMode: _isSelectionMode,
+              selectedCount: _selectedIds.length,
+              showSearch: _showSearch,
+              searchController: _searchController,
+              onSearchChanged: (value) => setState(() => _searchQuery = value),
+              onSearchToggle: () => setState(() {
+                _showSearch = !_showSearch;
+                if (!_showSearch) {
+                  _searchQuery = '';
+                  _searchController.clear();
+                }
+              }),
+              onExitSelection: _clearSelection,
+              onDeleteSelected: _deleteSelected,
+            ),
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: surfaceColor,
                 ),
-                Align(
-                  alignment: Alignment.topCenter,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: contentMaxWidth),
-                    child: Padding(
-                      padding: EdgeInsets.only(top: inset),
-                      child: resultsAsync.when(
+                clipBehavior: Clip.antiAlias,
+                child: SafeArea(
+                  top: false,
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: contentMaxWidth),
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          top: viewportWidth >= 720
+                              ? context.spacing.lg
+                              : context.spacing.m,
+                        ),
+                        child: resultsAsync.when(
                         loading: () =>
                             const Center(child: CircularProgressIndicator()),
                         error: (e, _) => Center(
@@ -169,15 +165,16 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                             ],
                           );
                         },
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
-          SizedBox(height: lo.navBarBottomGap),
-        ],
+            SizedBox(height: lo.navBarBottomGap),
+          ],
+        ),
       ),
     );
   }
@@ -218,6 +215,19 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         : a.timestamp.compareTo(b.timestamp));
 
     return filtered;
+  }
+
+  LinearGradient _collectionHeaderGradient(BrandColors brand) {
+    return LinearGradient(
+      begin: Alignment.centerLeft,
+      end: Alignment.centerRight,
+      colors: [
+        brand.pink,
+        Color.lerp(brand.pink, brand.purple, 0.45)!,
+        brand.purple,
+      ],
+      stops: const [0.0, 0.42, 1.0],
+    );
   }
 
   void _startSelection(PredictionRecord record) {
@@ -715,13 +725,18 @@ class _CollectionHeader extends StatelessWidget {
         0,
         topPad + spacing.sm,
         0,
-        (showSearch ? spacing.m : spacing.lg) + bottomInset,
+        (showSearch ? spacing.xs : spacing.sm) + (bottomInset * 0.38),
       ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [brand.pink, brand.purple, brand.deepPurple],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [
+            brand.pink,
+            Color.lerp(brand.pink, brand.purple, 0.45)!,
+            brand.purple,
+          ],
+          stops: const [0.0, 0.42, 1.0],
         ),
       ),
       child: Center(
@@ -884,62 +899,69 @@ class _FilterRow extends StatelessWidget {
     final lo = context.layout;
     final viewportWidth = MediaQuery.sizeOf(context).width;
     final verticalPadding = viewportWidth >= 720 ? spacing.sm : 4.0;
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: EdgeInsets.fromLTRB(
-        lo.screenPadH,
-        verticalPadding,
-        lo.screenPadH,
-        verticalPadding,
-      ),
-      child: Row(
-        children: [
-          _CollectionChipButton<bool>(
-            label: sortMostRecent ? 'Most Recent' : 'Oldest',
-            icon: Icons.access_time_rounded,
-            highlighted: true,
-            value: sortMostRecent,
-            options: const [
-              PopupMenuItem<bool>(value: true, child: Text('Most Recent')),
-              PopupMenuItem<bool>(value: false, child: Text('Oldest')),
-            ],
-            onSelected: onSortChanged,
-          ),
-          _CollectionChipButton<String>(
-            label: selectedBreed ?? 'Breed',
-            value: selectedBreed ?? allBreedsValue,
-            icon: selectedBreed != null ? Icons.pets_rounded : null,
-            options: [
-              PopupMenuItem<String>(
-                value: allBreedsValue,
-                child: const Text('All breeds'),
-              ),
-              ...breedOptions.map(
-                (breed) => PopupMenuItem<String>(value: breed, child: Text(breed)),
-              ),
-            ],
-            onSelected: onBreedChanged,
-          ),
-          _CollectionChipButton<String>(
-            label: selectedGender ?? 'Gender',
-            value: selectedGender ?? allGendersValue,
-            icon: _selectedGenderIcon(selectedGender),
-            options: [
-              PopupMenuItem<String>(
-                value: allGendersValue,
-                child: const Text('All genders'),
-              ),
-              ...genderOptions.map(
-                (gender) => PopupMenuItem<String>(
-                  value: gender,
-                  child: Text(gender),
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.fromLTRB(
+          lo.screenPadH,
+          verticalPadding,
+          lo.screenPadH,
+          verticalPadding,
+        ),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minWidth: constraints.maxWidth - (lo.screenPadH * 2)),
+          child: Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _CollectionChipButton<bool>(
+                  label: sortMostRecent ? 'Most Recent' : 'Oldest',
+                  icon: Icons.access_time_rounded,
+                  highlighted: true,
+                  value: sortMostRecent,
+                  options: const [
+                    PopupMenuItem<bool>(value: true, child: Text('Most Recent')),
+                    PopupMenuItem<bool>(value: false, child: Text('Oldest')),
+                  ],
+                  onSelected: onSortChanged,
                 ),
-              ),
-            ],
-            onSelected: onGenderChanged,
+                _CollectionChipButton<String>(
+                  label: selectedBreed ?? 'Breed',
+                  value: selectedBreed ?? allBreedsValue,
+                  icon: selectedBreed != null ? Icons.pets_rounded : null,
+                  options: [
+                    PopupMenuItem<String>(
+                      value: allBreedsValue,
+                      child: const Text('All breeds'),
+                    ),
+                    ...breedOptions.map(
+                      (breed) => PopupMenuItem<String>(value: breed, child: Text(breed)),
+                    ),
+                  ],
+                  onSelected: onBreedChanged,
+                ),
+                _CollectionChipButton<String>(
+                  label: selectedGender ?? 'Gender',
+                  value: selectedGender ?? allGendersValue,
+                  icon: _selectedGenderIcon(selectedGender),
+                  options: [
+                    PopupMenuItem<String>(
+                      value: allGendersValue,
+                      child: const Text('All genders'),
+                    ),
+                    ...genderOptions.map(
+                      (gender) => PopupMenuItem<String>(
+                        value: gender,
+                        child: Text(gender),
+                      ),
+                    ),
+                  ],
+                  onSelected: onGenderChanged,
+                ),
+              ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }

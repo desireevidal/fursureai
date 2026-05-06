@@ -15,7 +15,7 @@ Future<void> openBreedInfoScreen(BuildContext context, BreedInfo info) {
   );
 }
 
-class BreedInfoScreen extends StatelessWidget {
+class BreedInfoScreen extends StatefulWidget {
   const BreedInfoScreen({
     super.key,
     required this.info,
@@ -24,141 +24,208 @@ class BreedInfoScreen extends StatelessWidget {
   final BreedInfo info;
 
   @override
+  State<BreedInfoScreen> createState() => _BreedInfoScreenState();
+}
+
+class _BreedInfoScreenState extends State<BreedInfoScreen> {
+  final ScrollController _scrollController = ScrollController();
+  bool _showTopFade = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_handleScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController
+      ..removeListener(_handleScroll)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _handleScroll() {
+    final shouldShow = _scrollController.hasClients && _scrollController.offset > 8;
+    if (shouldShow != _showTopFade && mounted) {
+      setState(() => _showTopFade = shouldShow);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final spacing = context.spacing;
     final brand = context.brand;
     final onPrimary = theme.colorScheme.onPrimary;
     final topPad = MediaQuery.paddingOf(context).top;
+    final radius = context.radius.xxl;
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      body: Column(
-        children: [
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.fromLTRB(
-              0,
-              topPad + spacing.sm,
-              0,
-              spacing.sm,
-            ),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [brand.pink, brand.purple, brand.deepPurple],
+      backgroundColor: Colors.transparent,
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [
+              Color(0xFFDB357C),
+              Color(0xFF901580),
+            ],
+          ),
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.fromLTRB(
+                0,
+                topPad + spacing.sm,
+                0,
+                spacing.sm,
+              ),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [brand.pink, brand.purple, brand.deepPurple],
+                ),
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: AppBackButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      color: onPrimary,
+                    ),
+                  ),
+                  Label(
+                    'About',
+                    variant: LabelVariant.title,
+                    color: onPrimary,
+                    weight: FontWeight.w700,
+                    uppercase: false,
+                  ),
+                ],
               ),
             ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: AppBackButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    color: onPrimary,
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  borderRadius: BorderRadius.only(
+                    topLeft: radius.topLeft,
+                    topRight: radius.topRight,
                   ),
                 ),
-                Label(
-                  'About',
-                  variant: LabelVariant.title,
-                  color: onPrimary,
-                  weight: FontWeight.w700,
-                  uppercase: false,
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                AspectRatio(
-                  aspectRatio: 16 / 10,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [brand.pink, brand.purple, brand.deepPurple],
-                      ),
+                clipBehavior: Clip.antiAlias,
+                child: Stack(
+                  children: [
+                    CustomScrollView(
+                      slivers: [
+                        SliverToBoxAdapter(
+                          child: AspectRatio(
+                            aspectRatio: 16 / 10,
+                            child: Image.asset(
+                              widget.info.heroImageAssetPath,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, _) => ColoredBox(
+                                color: theme.colorScheme.surfaceContainerHighest,
+                                child: Icon(
+                                  Icons.image_not_supported_outlined,
+                                  size: 48,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        SliverPadding(
+                          padding: EdgeInsets.fromLTRB(
+                            spacing.lg,
+                            spacing.lg,
+                            spacing.lg,
+                            spacing.xl,
+                          ),
+                          sliver: SliverList(
+                            delegate: SliverChildListDelegate(
+                              [
+                                Label(
+                                  widget.info.name,
+                                  variant: LabelVariant.h1,
+                                  size: 28,
+                                  align: TextAlign.center,
+                                  uppercase: false,
+                                  color: theme.colorScheme.onSurface,
+                                ),
+                                SizedBox(height: spacing.lg),
+                                _BreedInfoDetailCard(
+                                  icon: Icons.pets_rounded,
+                                  title: 'Description',
+                                  body: widget.info.description,
+                                ),
+                                SizedBox(height: spacing.lg),
+                                _FactGroupCard(facts: widget.info.facts),
+                                SizedBox(height: spacing.lg),
+                                _BreedInfoDetailCard(
+                                  icon: Icons.health_and_safety_outlined,
+                                  title: 'Health',
+                                  body: widget.info.health,
+                                ),
+                                SizedBox(height: spacing.m),
+                                _BreedInfoDetailCard(
+                                  icon: Icons.brush_outlined,
+                                  title: 'Grooming',
+                                  body: widget.info.grooming,
+                                ),
+                                SizedBox(height: spacing.m),
+                                _BreedInfoDetailCard(
+                                  icon: Icons.restaurant_outlined,
+                                  title: 'Nutrition',
+                                  body: widget.info.nutrition,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                      controller: _scrollController,
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.only(
-                        topLeft: context.radius.xxl.topLeft,
-                        topRight: context.radius.xxl.topRight,
-                      ),
-                      child: Image.asset(
-                        info.heroImageAssetPath,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, _) => ColoredBox(
-                          color: theme.colorScheme.surfaceContainerHighest,
-                          child: Icon(
-                            Icons.image_not_supported_outlined,
-                            size: 48,
-                            color: theme.colorScheme.onSurfaceVariant,
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: 64,
+                      child: IgnorePointer(
+                        child: AnimatedOpacity(
+                          duration: const Duration(milliseconds: 180),
+                          curve: Curves.easeOut,
+                          opacity: _showTopFade ? 1 : 0,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  theme.colorScheme.surface,
+                                  theme.colorScheme.surface.withValues(alpha: 0.78),
+                                  theme.colorScheme.surface.withValues(alpha: 0.0),
+                                ],
+                                stops: const [0.0, 0.42, 1.0],
+                              ),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-                      Padding(
-                        padding: EdgeInsets.fromLTRB(
-                          spacing.lg,
-                          spacing.lg,
-                          spacing.lg,
-                          spacing.xl,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Label(
-                              info.name,
-                              variant: LabelVariant.h2,
-                              align: TextAlign.center,
-                              uppercase: false,
-                            ),
-                            SizedBox(height: spacing.lg),
-                            _BreedInfoDetailCard(
-                              icon: Icons.pets_rounded,
-                              title: 'Description',
-                              body: info.description,
-                            ),
-                            SizedBox(height: spacing.lg),
-                            _FactGroupCard(facts: info.facts),
-                            SizedBox(height: spacing.lg),
-                            _BreedInfoDetailCard(
-                              icon: Icons.health_and_safety_outlined,
-                              title: 'Health',
-                              body: info.health,
-                            ),
-                            SizedBox(height: spacing.m),
-                            _BreedInfoDetailCard(
-                              icon: Icons.brush_outlined,
-                              title: 'Grooming',
-                              body: info.grooming,
-                            ),
-                            SizedBox(height: spacing.m),
-                            _BreedInfoDetailCard(
-                              icon: Icons.restaurant_outlined,
-                              title: 'Nutrition',
-                              body: info.nutrition,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -217,7 +284,11 @@ class _BreedInfoDetailCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Label(title, variant: LabelVariant.title, uppercase: false),
+                Label(
+                  title,
+                  variant: LabelVariant.title,
+                  uppercase: false,
+                ),
                 SizedBox(height: spacing.sm),
                 Label(
                   body,

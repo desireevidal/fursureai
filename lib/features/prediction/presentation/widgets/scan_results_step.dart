@@ -41,6 +41,32 @@ class ScanResultsStep extends StatefulWidget {
 }
 
 class _ScanResultsStepState extends State<ScanResultsStep> {
+  final ScrollController _scrollController = ScrollController();
+  bool _showTopFade = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_handleScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController
+      ..removeListener(_handleScroll)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _handleScroll() {
+    final shouldShow =
+        _scrollController.hasClients &&
+        _scrollController.offset > 8;
+    if (shouldShow != _showTopFade && mounted) {
+      setState(() => _showTopFade = shouldShow);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final viewportWidth = MediaQuery.sizeOf(context).width;
@@ -104,6 +130,7 @@ class _ScanResultsStepState extends State<ScanResultsStep> {
                   SizedBox(height: topSpacer),
                   Expanded(
                     child: SingleChildScrollView(
+                      controller: _scrollController,
                       physics: const AlwaysScrollableScrollPhysics(
                         parent: ClampingScrollPhysics(),
                       ),
@@ -235,6 +262,37 @@ class _ScanResultsStepState extends State<ScanResultsStep> {
                     ),
                   ),
                 ],
+              ),
+            ),
+          ),
+          Positioned(
+            top: expandedPurpleHeight - surfaceOverlap,
+            left: 0,
+            right: 0,
+            height: 64,
+            child: IgnorePointer(
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
+                opacity: _showTopFade ? 1 : 0,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.only(
+                      topLeft: context.radius.xxl.topLeft,
+                      topRight: context.radius.xxl.topRight,
+                    ),
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Theme.of(context).colorScheme.surface,
+                        Theme.of(context).colorScheme.surface.withValues(alpha: 0.78),
+                        Theme.of(context).colorScheme.surface.withValues(alpha: 0.0),
+                      ],
+                      stops: const [0.0, 0.42, 1.0],
+                    ),
+                  ),
+                ),
               ),
             ),
           ),

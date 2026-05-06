@@ -47,6 +47,13 @@ class AppTheme {
       onPrimary: Colors.white,
       secondary: BrandColors.dark.pink,
       onSecondary: Colors.white,
+      surface: const Color(0xFF211D24),
+      surfaceContainerLowest: const Color(0xFF19161C),
+      surfaceContainerLow: const Color(0xFF242029),
+      surfaceContainer: const Color(0xFF2A2530),
+      surfaceContainerHigh: const Color(0xFF312B38),
+      surfaceContainerHighest: const Color(0xFF38313F),
+      outlineVariant: const Color(0xFF5D5365),
     );
 
     return ThemeData(

@@ -49,7 +49,16 @@ class ScanPreviewStep extends StatelessWidget {
             right: 0,
             height: purpleHeight,
             child: Container(
-              color: brand.purple,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    brand.pink,
+                    brand.purple,
+                  ],
+                ),
+              ),
               padding: EdgeInsets.fromLTRB(0, topPad + spacing.sm, 0, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

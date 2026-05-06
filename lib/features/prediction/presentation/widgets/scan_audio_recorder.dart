@@ -141,23 +141,42 @@ class _ScanAudioRecorderState extends ConsumerState<ScanAudioRecorder>
     bool deleteSourceAfterEditing = false,
   }) async {
     final audioService = ref.read(audioServiceProvider);
+    final preparedFile = await audioService.prepareAudioForEditing(File(path));
+    final preparedDuration = await audioService.readWavDuration(preparedFile);
+
+    if (deleteSourceAfterEditing) {
+      await _deleteIfExists(path, exceptPath: preparedFile.path);
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    if (preparedDuration < _minRecordDuration) {
+      widget.onAudioSelected(preparedFile.path);
+      return;
+    }
+
     final trimmedPath = await Navigator.of(context).push<String>(
       MaterialPageRoute(
         builder: (_) => ScanAudioTrimEditor(
-          sourcePath: path,
+          sourcePath: preparedFile.path,
           audioService: audioService,
+          sourceIsPrepared: true,
         ),
       ),
     );
 
-    if (deleteSourceAfterEditing) {
-      await _deleteIfExists(path, exceptPath: trimmedPath);
-    }
-
-    if (!mounted || trimmedPath == null) {
+    if (trimmedPath == null) {
+      await _deleteIfExists(preparedFile.path);
       return;
     }
 
+    if (preparedFile.path != trimmedPath) {
+      await _deleteIfExists(preparedFile.path, exceptPath: trimmedPath);
+    }
+
+    if (!mounted) return;
     widget.onAudioSelected(trimmedPath);
   }
 

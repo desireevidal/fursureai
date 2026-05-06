@@ -19,6 +19,7 @@ import 'scan_session.dart';
 import 'scan_step.dart';
 import 'widgets/scan_audio_recorder.dart';
 import 'widgets/scan_loading_step.dart';
+import 'widgets/scan_photo_editor.dart';
 import 'widgets/scan_photo_step.dart';
 import 'widgets/scan_preview_step.dart';
 import 'widgets/scan_results_step.dart';
@@ -97,6 +98,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
   void dispose() {
     _predictionListener.close();
     _deleteSessionAudioFile(_session.audioPath);
+    _deleteSessionImageFile(_session.selectedImage);
     super.dispose();
   }
 
@@ -113,8 +115,19 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
       return;
     }
 
+    final editedPath = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => ScanPhotoEditor(sourcePath: picked.path),
+      ),
+    );
+
+    if (editedPath == null || !mounted) {
+      return;
+    }
+
+    _deleteSessionImageFile(_session.selectedImage);
     setState(() {
-      _session = _session.copyWith(selectedImage: File(picked.path));
+      _session = _session.copyWith(selectedImage: File(editedPath));
       _step = ScanStep.audio;
     });
   }
@@ -138,6 +151,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
 
   void _retake() {
     _deleteSessionAudioFile(_session.audioPath);
+    _deleteSessionImageFile(_session.selectedImage);
     setState(() {
       _session = const ScanSession();
       _step = ScanStep.photo;
@@ -221,6 +235,23 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
 
     try {
       final file = File(path);
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (_) {
+      // ignore cleanup failures
+    }
+  }
+
+  Future<void> _deleteSessionImageFile(File? file) async {
+    if (file == null) return;
+    try {
+      final path = file.path;
+      final tempDir = Directory.systemTemp.path;
+      final isEditedTemp =
+          path.startsWith(tempDir) &&
+          path.contains('${Platform.pathSeparator}edited_');
+      if (!isEditedTemp) return;
       if (await file.exists()) {
         await file.delete();
       }

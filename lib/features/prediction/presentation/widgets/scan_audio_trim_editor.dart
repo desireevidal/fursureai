@@ -19,10 +19,12 @@ class ScanAudioTrimEditor extends StatefulWidget {
     super.key,
     required this.sourcePath,
     required this.audioService,
+    this.sourceIsPrepared = false,
   });
 
   final String sourcePath;
   final AudioService audioService;
+  final bool sourceIsPrepared;
 
   @override
   State<ScanAudioTrimEditor> createState() => _ScanAudioTrimEditorState();
@@ -30,19 +32,18 @@ class ScanAudioTrimEditor extends StatefulWidget {
 
 class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
   static const _editorMaxDuration = Duration(seconds: 15);
+  static const _waveformMinBars = 56;
+  static const _waveformMaxBars = 220;
+  static const _timelineFollowPadding = 56.0;
   static const _minSelection = Duration(
     seconds: PredictionConstants.audioMinDurationSeconds,
   );
   static const _maxSelection = Duration(
     seconds: PredictionConstants.audioMaxDurationSeconds,
   );
-  static const _durationOptions = <Duration>[
-    Duration(seconds: 1),
-    Duration(milliseconds: 1500),
-    Duration(seconds: 2),
-  ];
 
   final AudioPlayer _player = AudioPlayer();
+  final ScrollController _timelineScrollController = ScrollController();
 
   File? _preparedFile;
   Duration _audioDuration = Duration.zero;
@@ -56,7 +57,8 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
   bool _isSaving = false;
   bool _isPlaying = false;
   String? _errorMessage;
-  double _volume = 1.0;
+  double _timelineViewportWidth = 0;
+  double _timelineContentWidth = 0;
 
   @override
   void initState() {
@@ -77,6 +79,7 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
           _isPlaying = false;
           _playbackStopAt = null;
         });
+        _scheduleEnsurePlayheadVisible();
         return;
       }
       setState(() {
@@ -85,6 +88,7 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
           _audioDuration.inMilliseconds.toDouble(),
         );
       });
+      _scheduleEnsurePlayheadVisible();
     });
     _player.onPlayerComplete.listen((_) {
       if (!mounted) return;
@@ -94,6 +98,7 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
         _playheadMilliseconds = restartAt;
         _playbackStopAt = null;
       });
+      _scheduleEnsurePlayheadVisible();
     });
     _prepareEditor();
   }
@@ -101,6 +106,7 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
   @override
   void dispose() {
     _player.dispose();
+    _timelineScrollController.dispose();
     final preparedFile = _preparedFile;
     if (preparedFile != null) {
       widget.audioService.deletePreparedAudio(preparedFile);
@@ -120,16 +126,21 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
 
   double get _maxRangeMilliseconds => math.max(
     _audioDuration.inMilliseconds.toDouble(),
-    _maxSelection.inMilliseconds.toDouble(),
+    1,
   );
 
   Future<void> _prepareEditor() async {
     try {
-      final prepared = await widget.audioService.prepareAudioForEditing(
-        File(widget.sourcePath),
-      );
+      final prepared = widget.sourceIsPrepared
+          ? File(widget.sourcePath)
+          : await widget.audioService.prepareAudioForEditing(
+              File(widget.sourcePath),
+            );
       final duration = await widget.audioService.readWavDuration(prepared);
-      final waveform = await widget.audioService.buildWaveformBars(prepared);
+      final waveform = await widget.audioService.buildWaveformBars(
+        prepared,
+        barCount: _waveformBarCountFor(duration),
+      );
       final selectionEnd = math.min(
         duration.inMilliseconds.toDouble(),
         _clipDuration.inMilliseconds.toDouble(),
@@ -148,6 +159,7 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
         _playheadMilliseconds = 0;
         _isLoading = false;
       });
+      _scheduleEnsurePlayheadVisible();
     } on AppException catch (error) {
       if (!mounted) return;
       setState(() {
@@ -161,6 +173,14 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
         _isLoading = false;
       });
     }
+  }
+
+  int _waveformBarCountFor(Duration duration) {
+    final seconds = math.max(
+      duration.inMilliseconds / Duration.millisecondsPerSecond,
+      1,
+    );
+    return (seconds * 5).round().clamp(_waveformMinBars, _waveformMaxBars);
   }
 
   Future<void> _togglePlayback() async {
@@ -180,15 +200,20 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
     if (preparedFile == null) return;
 
     final playhead = _playheadMilliseconds;
+    final totalMilliseconds = _audioDuration.inMilliseconds.toDouble();
+    final atAudioEnd =
+        totalMilliseconds > 0 &&
+        (totalMilliseconds - playhead).abs() <= 1;
     final playInsideSelection =
         playhead >= _selection.start && playhead <= _selection.end;
     final startMilliseconds =
         forcedStartMilliseconds ??
-        (playInsideSelection ? _selection.start : _playheadMilliseconds);
+        (atAudioEnd
+            ? 0.0
+            : (playInsideSelection ? _selection.start : _playheadMilliseconds));
 
     await _player.stop();
     await _player.setSourceDeviceFile(preparedFile.path);
-    await _player.setVolume(_volume);
     await _player.seek(Duration(milliseconds: startMilliseconds.round()));
 
     if (mounted) {
@@ -209,10 +234,17 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
     final totalMs = _audioDuration.inMilliseconds.toDouble();
     if (totalMs <= 0) return;
 
-    final clipMs = math.min(_clipDuration.inMilliseconds.toDouble(), totalMs);
-    final maxStart = math.max(totalMs - clipMs, 0.0);
-    final start = values.start.clamp(0.0, maxStart).toDouble();
-    final end = math.min(start + clipMs, totalMs).toDouble();
+    final end = _selection.end;
+    final minStart = math.max(
+      end - _maxSelection.inMilliseconds.toDouble(),
+      0.0,
+    );
+    final maxStart = math.max(
+      end - _minSelection.inMilliseconds.toDouble(),
+      0.0,
+    );
+    final effectiveMinStart = math.min(minStart, maxStart);
+    final start = values.start.clamp(effectiveMinStart, maxStart).toDouble();
 
     if (_isPlaying) {
       _player.pause();
@@ -220,31 +252,41 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
 
     setState(() {
       _selection = RangeValues(start, end);
+      _clipDuration = Duration(milliseconds: (end - start).round());
+      if (_playheadMilliseconds < start) {
+        _playheadMilliseconds = start;
+      }
       _playbackStopAt = null;
     });
+    _scheduleEnsurePlayheadVisible();
   }
 
-  void _setClipDuration(Duration duration) {
+  void _onSelectionEndChanged(double endMilliseconds) {
     final totalMs = _audioDuration.inMilliseconds.toDouble();
     if (totalMs <= 0) return;
 
-    final targetMs = duration.inMilliseconds.toDouble().clamp(
-      _minSelection.inMilliseconds.toDouble(),
-      _maxSelection.inMilliseconds.toDouble(),
+    final start = _selection.start;
+    final minEnd = start + _minSelection.inMilliseconds.toDouble();
+    final maxEnd = math.min(
+      start + _maxSelection.inMilliseconds.toDouble(),
+      totalMs,
     );
-    final maxStart = math.max(totalMs - targetMs, 0.0);
-    final start = math.min(_selection.start, maxStart).toDouble();
-    final end = math.min(start + targetMs, totalMs).toDouble();
+    final effectiveMinEnd = math.min(minEnd, maxEnd);
+    final end = endMilliseconds.clamp(effectiveMinEnd, maxEnd).toDouble();
 
     if (_isPlaying) {
       _player.pause();
     }
 
     setState(() {
-      _clipDuration = duration;
+      _clipDuration = Duration(milliseconds: (end - start).round());
       _selection = RangeValues(start, end);
+      if (_playheadMilliseconds > end) {
+        _playheadMilliseconds = end;
+      }
       _playbackStopAt = null;
     });
+    _scheduleEnsurePlayheadVisible();
   }
 
   void _setPlayhead(double valueMilliseconds) {
@@ -260,6 +302,7 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
       _playheadMilliseconds = clamped;
       _playbackStopAt = null;
     });
+    _scheduleEnsurePlayheadVisible();
   }
 
   void _moveSelectionToPlayhead() {
@@ -279,6 +322,37 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
       _selection = RangeValues(start, end);
       _playbackStopAt = null;
     });
+    _scheduleEnsurePlayheadVisible();
+  }
+
+  void _shiftSelectionBy(double deltaMilliseconds) {
+    final totalMs = _audioDuration.inMilliseconds.toDouble();
+    if (totalMs <= 0) return;
+
+    final clipMs = (_selection.end - _selection.start).clamp(
+      _minSelection.inMilliseconds.toDouble(),
+      math.min(_maxSelection.inMilliseconds.toDouble(), totalMs),
+    );
+    final maxStart = math.max(totalMs - clipMs, 0.0);
+    final start = (_selection.start + deltaMilliseconds)
+        .clamp(0.0, maxStart)
+        .toDouble();
+    final end = math.min(start + clipMs, totalMs).toDouble();
+
+    if (_isPlaying) {
+      _player.pause();
+    }
+
+    setState(() {
+      _selection = RangeValues(start, end);
+      if (_playheadMilliseconds < start) {
+        _playheadMilliseconds = start;
+      } else if (_playheadMilliseconds > end) {
+        _playheadMilliseconds = end;
+      }
+      _playbackStopAt = null;
+    });
+    _scheduleEnsurePlayheadVisible();
   }
 
   Future<void> _restartPlayback() async {
@@ -305,13 +379,54 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
       _playheadMilliseconds = next;
       _playbackStopAt = null;
     });
+    _scheduleEnsurePlayheadVisible();
   }
 
-  Future<void> _setVolume(double value) async {
-    final clamped = value.clamp(0.0, 1.0);
-    await _player.setVolume(clamped);
-    if (!mounted) return;
-    setState(() => _volume = clamped);
+  void _cacheTimelineMetrics({
+    required double viewportWidth,
+    required double contentWidth,
+  }) {
+    _timelineViewportWidth = viewportWidth;
+    _timelineContentWidth = contentWidth;
+  }
+
+  void _scheduleEnsurePlayheadVisible() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _ensurePlayheadVisible();
+    });
+  }
+
+  void _ensurePlayheadVisible() {
+    if (!_timelineScrollController.hasClients ||
+        _timelineViewportWidth <= 0 ||
+        _timelineContentWidth <= _timelineViewportWidth) {
+      return;
+    }
+
+    final safeMax = math.max(_maxRangeMilliseconds, 1);
+    final playheadX = (_playheadMilliseconds / safeMax) * _timelineContentWidth;
+    final position = _timelineScrollController.position;
+    final currentOffset = position.pixels;
+    final minVisible = currentOffset + _timelineFollowPadding;
+    final maxVisible = currentOffset + _timelineViewportWidth - _timelineFollowPadding;
+
+    double? targetOffset;
+    if (playheadX < minVisible) {
+      targetOffset = playheadX - _timelineFollowPadding;
+    } else if (playheadX > maxVisible) {
+      targetOffset = playheadX - _timelineViewportWidth + _timelineFollowPadding;
+    }
+
+    if (targetOffset == null) return;
+
+    final clampedOffset = targetOffset.clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    ).toDouble();
+
+    if ((clampedOffset - currentOffset).abs() < 1) return;
+    _timelineScrollController.jumpTo(clampedOffset);
   }
 
   Future<void> _saveTrimmedAudio() async {
@@ -461,51 +576,77 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
                               ),
                               SizedBox(height: spacing.lg),
                               Expanded(
-                                child: Column(
-                                  children: [
-                                    _TimeRuler(
-                                      totalDuration: _audioDuration,
-                                      selection: _selection,
-                                    ),
-                                    SizedBox(height: spacing.xs),
-                                    Expanded(
-                                      child: _WaveformTrimView(
-                                        bars: _waveformBars,
-                                        selection: _selection,
-                                        playheadMilliseconds: _playheadMilliseconds,
-                                        maxMilliseconds: _maxRangeMilliseconds,
-                                        brand: brand,
-                                        onSelectionChanged: _onSelectionChanged,
-                                        onPlayheadChanged: _setPlayhead,
-                                        onMarkerLongPress: _moveSelectionToPlayhead,
-                                      ),
-                                    ),
-                                    SizedBox(height: spacing.m),
-                                    Wrap(
-                                      alignment: WrapAlignment.center,
-                                      spacing: spacing.sm,
-                                      runSpacing: spacing.sm,
+                                child: LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    final timelineViewportWidth = math.max(
+                                      constraints.maxWidth,
+                                      1,
+                                    ).toDouble();
+                                    final timelineWidth =
+                                        _timelineContentWidthFor(
+                                          viewportWidth: timelineViewportWidth,
+                                        );
+                                    _cacheTimelineMetrics(
+                                      viewportWidth: timelineViewportWidth,
+                                      contentWidth: timelineWidth,
+                                    );
+
+                                    return Column(
                                       children: [
-                                        for (final duration in _durationOptions)
-                                          ChoiceChip(
-                                            label: Text(_durationChipLabel(duration)),
-                                            selected: _clipDuration == duration,
-                                            onSelected: (_) =>
-                                                _setClipDuration(duration),
+                                        Expanded(
+                                          child: SingleChildScrollView(
+                                            controller: _timelineScrollController,
+                                            scrollDirection: Axis.horizontal,
+                                            child: SizedBox(
+                                              width: timelineWidth,
+                                              child: Column(
+                                                children: [
+                                                  _TimeRuler(
+                                                    totalDuration: _audioDuration,
+                                                  ),
+                                                  SizedBox(height: spacing.xs),
+                                                  Expanded(
+                                                    child: _WaveformTrimView(
+                                                      bars: _waveformBars,
+                                                      selection: _selection,
+                                                      playheadMilliseconds:
+                                                          _playheadMilliseconds,
+                                                      maxMilliseconds:
+                                                          _maxRangeMilliseconds,
+                                                      brand: brand,
+                                                      onSelectionChanged:
+                                                          _onSelectionChanged,
+                                                      onSelectionEndChanged:
+                                                          _onSelectionEndChanged,
+                                                      onPlayheadChanged:
+                                                          _setPlayhead,
+                                                      onSelectionAreaDragged:
+                                                          _shiftSelectionBy,
+                                                      onMarkerLongPress:
+                                                          _moveSelectionToPlayhead,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
                                           ),
+                                        ),
+                                        SizedBox(height: spacing.m),
+                                        if (_errorMessage != null) ...[
+                                          SizedBox(height: spacing.sm),
+                                          Label(
+                                            _errorMessage!,
+                                            variant: LabelVariant.caption,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .error,
+                                            align: TextAlign.center,
+                                            uppercase: false,
+                                          ),
+                                        ],
                                       ],
-                                    ),
-                                    if (_errorMessage != null) ...[
-                                      SizedBox(height: spacing.sm),
-                                      Label(
-                                        _errorMessage!,
-                                        variant: LabelVariant.caption,
-                                        color: Theme.of(context).colorScheme.error,
-                                        align: TextAlign.center,
-                                        uppercase: false,
-                                      ),
-                                    ],
-                                  ],
+                                    );
+                                  },
                                 ),
                               ),
                               SizedBox(height: spacing.m),
@@ -537,15 +678,7 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
                               ),
                               SizedBox(height: spacing.m),
                               Label(
-                                'Drag the left handle to set the meow start. Use the marker to scrub playback anywhere in the audio.',
-                                variant: LabelVariant.caption,
-                                color: onSurfaceVariant,
-                                align: TextAlign.center,
-                                uppercase: false,
-                              ),
-                              SizedBox(height: spacing.sm),
-                              Label(
-                                'Playback can go beyond the trim selection, but only the saved trimmed section will be used for prediction.',
+                                'Drag the black bottom caps to trim. Top marker scrubs playback.',
                                 variant: LabelVariant.caption,
                                 color: onSurfaceVariant,
                                 align: TextAlign.center,
@@ -579,9 +712,17 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
     return '$minutes:$seconds.$centiseconds';
   }
 
-  String _durationChipLabel(Duration duration) {
-    final seconds = duration.inMilliseconds / 1000;
-    return seconds % 1 == 0 ? '${seconds.toStringAsFixed(0)}s' : '${seconds.toStringAsFixed(1)}s';
+  double _timelineContentWidthFor({required double viewportWidth}) {
+    final seconds = math.max(
+      _audioDuration.inMilliseconds / Duration.millisecondsPerSecond,
+      1,
+    );
+    final pixelsPerSecond = viewportWidth >= 900
+        ? 78.0
+        : viewportWidth >= 700
+        ? 68.0
+        : 56.0;
+    return math.max(viewportWidth, seconds * pixelsPerSecond);
   }
 }
 
@@ -657,11 +798,9 @@ class _TrimErrorState extends StatelessWidget {
 class _TimeRuler extends StatelessWidget {
   const _TimeRuler({
     required this.totalDuration,
-    required this.selection,
   });
 
   final Duration totalDuration;
-  final RangeValues selection;
 
   @override
   Widget build(BuildContext context) {
@@ -710,7 +849,9 @@ class _WaveformTrimView extends StatelessWidget {
     required this.maxMilliseconds,
     required this.brand,
     required this.onSelectionChanged,
+    required this.onSelectionEndChanged,
     required this.onPlayheadChanged,
+    required this.onSelectionAreaDragged,
     required this.onMarkerLongPress,
   });
 
@@ -720,7 +861,9 @@ class _WaveformTrimView extends StatelessWidget {
   final double maxMilliseconds;
   final BrandColors brand;
   final ValueChanged<RangeValues> onSelectionChanged;
+  final ValueChanged<double> onSelectionEndChanged;
   final ValueChanged<double> onPlayheadChanged;
+  final ValueChanged<double> onSelectionAreaDragged;
   final VoidCallback onMarkerLongPress;
 
   @override
@@ -734,36 +877,46 @@ class _WaveformTrimView extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final usableWidth = math.max(constraints.maxWidth, 1);
-        const handleVisualWidth = 26.0;
-        const handleTouchWidth = 72.0;
-        const endCapWidth = 16.0;
+        const trimLineWidth = 2.0;
+        const handleCapWidth = 18.0;
+        const handleCapHeight = 44.0;
+        const handleTouchWidth = 30.0;
+        const handleTouchHeight = 72.0;
+        const playheadTouchWidth = 36.0;
+        const playheadTouchHeight = 44.0;
+        const playheadLineWidth = 2.0;
         final left = usableWidth * selectedStart;
         final right = usableWidth * selectedEnd;
         final playhead = usableWidth * (playheadMilliseconds / safeMax);
         final selectedWidth = math.max(right - left, 0).toDouble();
-        final leftHandleLeft = (left - handleTouchWidth / 2).clamp(
+        final leftLineLeft = left.clamp(0.0, usableWidth).toDouble();
+        final rightLineLeft = (right - trimLineWidth).clamp(
           0.0,
-          math.max(usableWidth - handleTouchWidth, 0.0),
+          math.max(usableWidth - trimLineWidth, 0.0),
         ).toDouble();
-        final leftHandleAlignment = left <= handleTouchWidth / 2
-            ? Alignment.bottomLeft
-            : Alignment.bottomCenter;
+        final maxTouchLeft = math.max(usableWidth - handleTouchWidth, 0.0);
+        final leftHandleVisualLeft = leftLineLeft + trimLineWidth;
+        final rightHandleVisualLeft = rightLineLeft - handleCapWidth;
+        final leftHandleTouchLeft = (leftHandleVisualLeft).clamp(
+          0.0,
+          maxTouchLeft,
+        ).toDouble();
+        final rightHandleTouchLeft = (rightHandleVisualLeft -
+                (handleTouchWidth - handleCapWidth))
+            .clamp(
+          0.0,
+          maxTouchLeft,
+        ).toDouble();
+        final leftHandleVisualOffset =
+            leftHandleVisualLeft - leftHandleTouchLeft;
+        final rightHandleVisualOffset =
+            rightHandleVisualLeft - rightHandleTouchLeft;
 
-        return GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onTapDown: (details) {
-            final tappedMs = (((details.localPosition.dx / usableWidth) * safeMax)
-                    .clamp(0.0, safeMax))
-                .toDouble();
-            onPlayheadChanged(tappedMs);
-            if (tappedMs < selection.start) {
-              onSelectionChanged(RangeValues(tappedMs, selection.end));
-            }
-          },
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 320),
-            child: Stack(
-              children: [
+        return Container(
+          constraints: const BoxConstraints(minHeight: 320),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
                 Align(
                   alignment: Alignment.center,
                   child: Row(
@@ -811,26 +964,34 @@ class _WaveformTrimView extends StatelessWidget {
                   width: selectedWidth,
                   top: 0,
                   bottom: 0,
-                  child: _DragTarget(
-                    width: selectedWidth,
-                    onDragDelta: (deltaPx) {
-                      final deltaMs = (deltaPx / usableWidth) * safeMax;
-                      onSelectionChanged(
-                        RangeValues(
-                          selection.start + deltaMs,
-                          selection.end + deltaMs,
-                        ),
-                      );
-                    },
-                    child: IgnorePointer(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: brand.purple.withValues(alpha: 0.16),
-                          border: Border(
-                            left: BorderSide(color: brand.pink, width: 3),
-                            right: BorderSide(color: Colors.black87, width: 3),
-                          ),
-                        ),
+                  child: IgnorePointer(
+                    child: Container(
+                      color: brand.purple.withValues(alpha: 0.16),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: left,
+                  width: selectedWidth,
+                  top: 0,
+                  bottom: 0,
+                  child: _LongPressDragTarget(
+                    onDragDelta: (deltaPx) => onSelectionAreaDragged(
+                      (deltaPx / usableWidth) * safeMax,
+                    ),
+                    child: const SizedBox.expand(),
+                  ),
+                ),
+                Positioned(
+                  left: playhead - playheadLineWidth / 2,
+                  top: 30,
+                  bottom: 0,
+                  child: IgnorePointer(
+                    child: Container(
+                      width: playheadLineWidth,
+                      decoration: BoxDecoration(
+                        color: brand.pink,
+                        borderRadius: BorderRadius.circular(999),
                       ),
                     ),
                   ),
@@ -848,23 +1009,37 @@ class _WaveformTrimView extends StatelessWidget {
                     ),
                   ),
                 Positioned(
-                  left: playhead - 2,
+                  left: leftLineLeft,
                   top: 0,
-                  bottom: 34,
+                  bottom: 0,
                   child: IgnorePointer(
                     child: Container(
-                      width: 4,
+                      width: trimLineWidth,
                       decoration: BoxDecoration(
-                        color: brand.purple,
+                        color: Colors.black87,
                         borderRadius: BorderRadius.circular(999),
                       ),
                     ),
                   ),
                 ),
                 Positioned(
-                  left: leftHandleLeft,
+                  left: rightLineLeft,
                   top: 0,
                   bottom: 0,
+                  child: IgnorePointer(
+                    child: Container(
+                      width: trimLineWidth,
+                      decoration: BoxDecoration(
+                        color: Colors.black87,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: leftHandleTouchLeft,
+                  bottom: 0,
+                  height: handleTouchHeight,
                   child: _DragTarget(
                     width: handleTouchWidth,
                     onDragDelta: (deltaPx) {
@@ -876,48 +1051,78 @@ class _WaveformTrimView extends StatelessWidget {
                       );
                     },
                     child: Align(
-                      alignment: leftHandleAlignment,
-                      child: _HandlePill(
-                        color: brand.pink,
-                        width: handleVisualWidth,
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  left: right - endCapWidth / 2,
-                  top: 0,
-                  bottom: 0,
-                  child: IgnorePointer(
-                    child: Align(
-                      alignment: Alignment.bottomCenter,
-                      child: _HandlePill(
+                      alignment: Alignment.bottomLeft,
+                      child: _TrimEdgeHandle(
                         color: Colors.black87,
-                        width: endCapWidth,
+                        width: handleCapWidth,
+                        height: handleCapHeight,
+                        horizontalOffset: leftHandleVisualOffset,
                       ),
                     ),
                   ),
                 ),
                 Positioned(
-                  left: playhead - 32,
+                  left: (playhead - playheadTouchWidth / 2).clamp(
+                    -playheadTouchWidth / 2,
+                    math.max(
+                      usableWidth - playheadTouchWidth / 2,
+                      -playheadTouchWidth / 2,
+                    ),
+                  ),
                   top: 0,
+                  child: IgnorePointer(
+                    child: SizedBox(
+                      width: playheadTouchWidth,
+                      height: playheadTouchHeight,
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        child: _CenterMarker(color: brand.pink),
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: rightHandleTouchLeft,
                   bottom: 0,
+                  height: handleTouchHeight,
                   child: _DragTarget(
-                    width: 64,
+                    width: handleTouchWidth,
+                    onDragDelta: (deltaPx) => onSelectionEndChanged(
+                      selection.end + (deltaPx / usableWidth) * safeMax,
+                    ),
+                    child: Align(
+                      alignment: Alignment.bottomLeft,
+                      child: _TrimEdgeHandle(
+                        color: Colors.black87,
+                        width: handleCapWidth,
+                        height: handleCapHeight,
+                        horizontalOffset: rightHandleVisualOffset,
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: (playhead - playheadTouchWidth / 2).clamp(
+                    -playheadTouchWidth / 2,
+                    math.max(
+                      usableWidth - playheadTouchWidth / 2,
+                      -playheadTouchWidth / 2,
+                    ),
+                  ),
+                  top: 0,
+                  child: _DragTarget(
+                    width: playheadTouchWidth,
+                    height: playheadTouchHeight,
                     onDragDelta: (deltaPx) => onPlayheadChanged(
                       playheadMilliseconds + (deltaPx / usableWidth) * safeMax,
                     ),
                     onLongPress: onMarkerLongPress,
-                    child: Align(
-                      alignment: Alignment.bottomCenter,
-                      child: _CenterMarker(color: brand.purple),
-                    ),
+                    child: SizedBox(width: playheadTouchWidth),
                   ),
                 ),
               ],
             ),
-          ),
-        );
+          );
       },
     );
   }
@@ -942,12 +1147,14 @@ class _WaveformTrimView extends StatelessWidget {
 class _DragTarget extends StatelessWidget {
   const _DragTarget({
     required this.width,
+    this.height,
     required this.onDragDelta,
     required this.child,
     this.onLongPress,
   });
 
   final double width;
+  final double? height;
   final ValueChanged<double> onDragDelta;
   final Widget child;
   final VoidCallback? onLongPress;
@@ -960,41 +1167,90 @@ class _DragTarget extends StatelessWidget {
       onLongPress: onLongPress,
       child: SizedBox(
         width: width,
+        height: height,
         child: child,
       ),
     );
   }
 }
 
-class _HandlePill extends StatelessWidget {
-  const _HandlePill({required this.color, required this.width});
+class _LongPressDragTarget extends StatefulWidget {
+  const _LongPressDragTarget({
+    required this.onDragDelta,
+    required this.child,
+  });
 
-  final Color color;
-  final double width;
+  final ValueChanged<double> onDragDelta;
+  final Widget child;
+
+  @override
+  State<_LongPressDragTarget> createState() => _LongPressDragTargetState();
+}
+
+class _LongPressDragTargetState extends State<_LongPressDragTarget> {
+  double? _lastGlobalDx;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: width,
-      height: 60,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.22),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Center(
-        child: Container(
-          width: 4,
-          height: 24,
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.92),
-            borderRadius: BorderRadius.circular(99),
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onLongPressStart: (details) => _lastGlobalDx = details.globalPosition.dx,
+      onLongPressMoveUpdate: (details) {
+        final lastDx = _lastGlobalDx;
+        if (lastDx == null) {
+          _lastGlobalDx = details.globalPosition.dx;
+          return;
+        }
+        final delta = details.globalPosition.dx - lastDx;
+        _lastGlobalDx = details.globalPosition.dx;
+        widget.onDragDelta(delta);
+      },
+      onLongPressEnd: (_) => _lastGlobalDx = null,
+      onLongPressUp: () => _lastGlobalDx = null,
+      child: widget.child,
+    );
+  }
+}
+
+class _TrimEdgeHandle extends StatelessWidget {
+  const _TrimEdgeHandle({
+    required this.color,
+    required this.width,
+    required this.height,
+    required this.horizontalOffset,
+  });
+
+  final Color color;
+  final double width;
+  final double height;
+  final double horizontalOffset;
+
+  @override
+  Widget build(BuildContext context) {
+    return Transform.translate(
+      offset: Offset(horizontalOffset, 0),
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.18),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Container(
+            width: 3,
+            height: 18,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.92),
+              borderRadius: BorderRadius.circular(999),
+            ),
           ),
         ),
       ),
@@ -1012,16 +1268,8 @@ class _CenterMarker extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          width: 4,
-          height: 22,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(999),
-          ),
-        ),
         Icon(
-          Icons.arrow_drop_up_rounded,
+          Icons.arrow_drop_down_rounded,
           size: 30,
           color: color,
         ),
