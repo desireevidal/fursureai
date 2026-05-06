@@ -4,8 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 
 import 'app.dart';
-import 'providers/app_providers.dart';
-import 'services/app_settings_service.dart';
 
 void main() async {
   final WidgetsBinding widgetsBinding =
@@ -15,13 +13,9 @@ void main() async {
     DeviceOrientation.portraitUp,
   ]);
 
-  final savedTheme = await AppSettingsService().loadThemeMode();
-
   runApp(
     ProviderScope(
-      overrides: [
-        initialThemeModeProvider.overrideWithValue(savedTheme),
-      ],
+      overrides: const [],
       child: const FursureApp(),
     ),
   );

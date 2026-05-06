@@ -15,43 +15,69 @@ class AudioPlayerPill extends StatefulWidget {
 }
 
 class _AudioPlayerPillState extends State<AudioPlayerPill> {
-  final _player = AudioPlayer();
+  AudioPlayer? _player;
   bool _isPlaying = false;
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
+  bool _isPreparing = false;
 
   @override
   void initState() {
     super.initState();
-    _player.onPlayerStateChanged.listen((state) {
-      if (mounted) setState(() => _isPlaying = state == PlayerState.playing);
-    });
-    _player.onPositionChanged.listen((pos) {
-      if (mounted) setState(() => _position = pos);
-    });
-    _player.onDurationChanged.listen((dur) {
-      if (mounted) setState(() => _duration = dur);
-    });
-    _player.onPlayerComplete.listen((_) {
-      if (mounted) setState(() => _position = Duration.zero);
-    });
-    if (widget.audioPath != null) {
-      _player.setSourceDeviceFile(widget.audioPath!);
-    }
   }
 
   @override
   void dispose() {
-    _player.dispose();
+    _player?.dispose();
     super.dispose();
   }
 
+  AudioPlayer _ensurePlayer() {
+    final existing = _player;
+    if (existing != null) {
+      return existing;
+    }
+
+    final player = AudioPlayer();
+    player.onPlayerStateChanged.listen((state) {
+      if (mounted) setState(() => _isPlaying = state == PlayerState.playing);
+    });
+    player.onPositionChanged.listen((pos) {
+      if (mounted) setState(() => _position = pos);
+    });
+    player.onDurationChanged.listen((dur) {
+      if (mounted) setState(() => _duration = dur);
+    });
+    player.onPlayerComplete.listen((_) {
+      if (mounted) setState(() => _position = Duration.zero);
+    });
+    _player = player;
+    return player;
+  }
+
   Future<void> _togglePlayback() async {
-    if (_isPlaying) {
-      await _player.pause();
-    } else {
-      if (widget.audioPath != null) {
-        await _player.play(DeviceFileSource(widget.audioPath!));
+    final path = widget.audioPath;
+    if (path == null || _isPreparing) return;
+    final player = _ensurePlayer();
+
+    try {
+      if (_isPlaying) {
+        await player.pause();
+        return;
+      }
+
+      setState(() => _isPreparing = true);
+      await player.play(DeviceFileSource(path));
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isPlaying = false;
+        _position = Duration.zero;
+        _duration = Duration.zero;
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isPreparing = false);
       }
     }
   }

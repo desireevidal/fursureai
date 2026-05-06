@@ -5,7 +5,6 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 
 import 'package:fursure/core/error/app_exceptions.dart';
-import 'package:fursure/core/theme/app_radius.dart';
 import 'package:fursure/core/theme/app_spacing.dart';
 import 'package:fursure/core/theme/brand_colors.dart';
 import 'package:fursure/core/widgets/app_back_button.dart';
@@ -31,7 +30,6 @@ class ScanAudioTrimEditor extends StatefulWidget {
 }
 
 class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
-  static const _editorMaxDuration = Duration(seconds: 15);
   static const _waveformMinBars = 56;
   static const _waveformMaxBars = 220;
   static const _timelineFollowPadding = 56.0;
@@ -42,7 +40,7 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
     seconds: PredictionConstants.audioMaxDurationSeconds,
   );
 
-  final AudioPlayer _player = AudioPlayer();
+  AudioPlayer? _player;
   final ScrollController _timelineScrollController = ScrollController();
 
   File? _preparedFile;
@@ -63,17 +61,51 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
   @override
   void initState() {
     super.initState();
-    _player.onPlayerStateChanged.listen((state) {
+    _prepareEditor();
+  }
+
+  @override
+  void dispose() {
+    _player?.dispose();
+    _timelineScrollController.dispose();
+    final preparedFile = _preparedFile;
+    if (preparedFile != null) {
+      widget.audioService.deletePreparedAudio(preparedFile);
+    }
+    super.dispose();
+  }
+
+  Duration get _selectionStart =>
+      Duration(milliseconds: _selection.start.round());
+
+  Duration get _selectionEnd => Duration(milliseconds: _selection.end.round());
+
+  Duration get _selectionDuration => _selectionEnd - _selectionStart;
+
+  double get _maxRangeMilliseconds => math.max(
+    _audioDuration.inMilliseconds.toDouble(),
+    1,
+  );
+
+  AudioPlayer _ensurePlayer() {
+    final existing = _player;
+    if (existing != null) {
+      return existing;
+    }
+
+    final player = AudioPlayer();
+    player.onPlayerStateChanged.listen((state) {
       if (!mounted) return;
       setState(() => _isPlaying = state == PlayerState.playing);
     });
-    _player.onPositionChanged.listen((position) {
+    player.onPositionChanged.listen((position) {
       if (!mounted) return;
       final stopAt = _playbackStopAt;
       if (stopAt != null && position >= stopAt) {
-        _player.pause();
-        final restartAt = _lastPlaybackStartMilliseconds ?? stopAt.inMilliseconds.toDouble();
-        _player.seek(Duration(milliseconds: restartAt.round()));
+        player.pause();
+        final restartAt =
+            _lastPlaybackStartMilliseconds ?? stopAt.inMilliseconds.toDouble();
+        player.seek(Duration(milliseconds: restartAt.round()));
         setState(() {
           _playheadMilliseconds = restartAt;
           _isPlaying = false;
@@ -90,9 +122,10 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
       });
       _scheduleEnsurePlayheadVisible();
     });
-    _player.onPlayerComplete.listen((_) {
+    player.onPlayerComplete.listen((_) {
       if (!mounted) return;
-      final restartAt = _lastPlaybackStartMilliseconds ?? _playheadMilliseconds;
+      final restartAt =
+          _lastPlaybackStartMilliseconds ?? _playheadMilliseconds;
       setState(() {
         _isPlaying = false;
         _playheadMilliseconds = restartAt;
@@ -100,34 +133,9 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
       });
       _scheduleEnsurePlayheadVisible();
     });
-    _prepareEditor();
+    _player = player;
+    return player;
   }
-
-  @override
-  void dispose() {
-    _player.dispose();
-    _timelineScrollController.dispose();
-    final preparedFile = _preparedFile;
-    if (preparedFile != null) {
-      widget.audioService.deletePreparedAudio(preparedFile);
-    }
-    super.dispose();
-  }
-
-  Duration get _selectionStart =>
-      Duration(milliseconds: _selection.start.round());
-
-  Duration get _selectionEnd => Duration(milliseconds: _selection.end.round());
-
-  Duration get _selectionDuration => _selectionEnd - _selectionStart;
-
-  Duration get _playheadPosition =>
-      Duration(milliseconds: _playheadMilliseconds.round());
-
-  double get _maxRangeMilliseconds => math.max(
-    _audioDuration.inMilliseconds.toDouble(),
-    1,
-  );
 
   Future<void> _prepareEditor() async {
     try {
@@ -185,7 +193,7 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
 
   Future<void> _togglePlayback() async {
     if (_isPlaying) {
-      await _player.pause();
+      await _player?.pause();
       if (mounted) {
         setState(() => _playbackStopAt = null);
       }
@@ -198,6 +206,7 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
   Future<void> _startPlayback({double? forcedStartMilliseconds}) async {
     final preparedFile = _preparedFile;
     if (preparedFile == null) return;
+    final player = _ensurePlayer();
 
     final playhead = _playheadMilliseconds;
     final totalMilliseconds = _audioDuration.inMilliseconds.toDouble();
@@ -212,9 +221,9 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
             ? 0.0
             : (playInsideSelection ? _selection.start : _playheadMilliseconds));
 
-    await _player.stop();
-    await _player.setSourceDeviceFile(preparedFile.path);
-    await _player.seek(Duration(milliseconds: startMilliseconds.round()));
+    await player.stop();
+    await player.setSourceDeviceFile(preparedFile.path);
+    await player.seek(Duration(milliseconds: startMilliseconds.round()));
 
     if (mounted) {
       setState(() {
@@ -227,7 +236,7 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
       _playbackStopAt = playInsideSelection ? _selectionEnd : null;
     }
 
-    await _player.resume();
+    await player.resume();
   }
 
   void _onSelectionChanged(RangeValues values) {
@@ -247,7 +256,7 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
     final start = values.start.clamp(effectiveMinStart, maxStart).toDouble();
 
     if (_isPlaying) {
-      _player.pause();
+      _player?.pause();
     }
 
     setState(() {
@@ -275,7 +284,7 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
     final end = endMilliseconds.clamp(effectiveMinEnd, maxEnd).toDouble();
 
     if (_isPlaying) {
-      _player.pause();
+      _player?.pause();
     }
 
     setState(() {
@@ -295,7 +304,7 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
     final clamped = valueMilliseconds.clamp(0.0, totalMs);
 
     if (_isPlaying) {
-      _player.pause();
+      _player?.pause();
     }
 
     setState(() {
@@ -315,7 +324,7 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
     final end = math.min(start + clipMs, totalMs).toDouble();
 
     if (_isPlaying) {
-      _player.pause();
+      _player?.pause();
     }
 
     setState(() {
@@ -340,7 +349,7 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
     final end = math.min(start + clipMs, totalMs).toDouble();
 
     if (_isPlaying) {
-      _player.pause();
+      _player?.pause();
     }
 
     setState(() {
@@ -372,7 +381,7 @@ class _ScanAudioTrimEditorState extends State<ScanAudioTrimEditor> {
         .toDouble();
 
     if (_isPlaying) {
-      _player.pause();
+      _player?.pause();
     }
 
     setState(() {

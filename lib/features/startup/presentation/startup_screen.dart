@@ -16,31 +16,20 @@ class StartupScreen extends ConsumerStatefulWidget {
 }
 
 class _StartupScreenState extends ConsumerState<StartupScreen> {
-  late final ProviderSubscription<AsyncValue<String>> _startupSubscription;
-
-  @override
-  void initState() {
-    super.initState();
-    _startupSubscription = ref.listenManual<AsyncValue<String>>(
-      startupControllerProvider,
-      (_, AsyncValue<String> next) {
-        next.whenData((String route) {
-          if (mounted) context.go(route);
-        });
-      },
-    );
-  }
-
-  @override
-  void dispose() {
-    _startupSubscription.close();
-    super.dispose();
-  }
+  bool _hasNavigated = false;
 
   @override
   Widget build(BuildContext context) {
     final startupAsync = ref.watch(startupControllerProvider);
     final downloadState = ref.watch(downloadProgressProvider);
+
+    startupAsync.whenData((String route) {
+      if (_hasNavigated || !mounted) return;
+      _hasNavigated = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.go(route);
+      });
+    });
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F2F4),

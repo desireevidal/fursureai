@@ -33,6 +33,7 @@ class _ScanPhotoEditorState extends State<ScanPhotoEditor> {
 
   Uint8List? _imageBytes;
   Size? _imageSize;
+  Size? _displayImageSize;
   Size? _viewportSize;
   bool _isSaving = false;
   bool _isReady = false;
@@ -75,13 +76,14 @@ class _ScanPhotoEditorState extends State<ScanPhotoEditor> {
     final source = fitted.source;
     final destination = fitted.destination;
 
-    final scale = destination.width / source.width;
-    final dx = (viewport.width - (image.width * scale)) / 2;
-    final dy = (viewport.height - (image.height * scale)) / 2;
+    final displayWidth = image.width * (destination.width / source.width);
+    final displayHeight = image.height * (destination.height / source.height);
+    final dx = (viewport.width - displayWidth) / 2;
+    final dy = (viewport.height - displayHeight) / 2;
+    _displayImageSize = Size(displayWidth, displayHeight);
 
     _transformationController.value = Matrix4.identity()
-      ..translate(dx, dy)
-      ..scale(scale);
+      ..translateByDouble(dx, dy, 0, 1);
 
     _isReady = true;
   }
@@ -229,18 +231,19 @@ class _ScanPhotoEditorState extends State<ScanPhotoEditor> {
                                     child: InteractiveViewer(
                                       transformationController:
                                           _transformationController,
-                                      minScale: 0.6,
-                                      maxScale: 5.0,
+                                      minScale: 1.0,
+                                      maxScale: 3.2,
                                       panEnabled: true,
                                       scaleEnabled: true,
+                                      boundaryMargin: EdgeInsets.zero,
                                       clipBehavior: Clip.hardEdge,
                                       constrained: false,
                                       child: SizedBox(
-                                        width: _imageSize!.width,
-                                        height: _imageSize!.height,
+                                        width: _displayImageSize!.width,
+                                        height: _displayImageSize!.height,
                                         child: Image.memory(
                                           _imageBytes!,
-                                          fit: BoxFit.fill,
+                                          fit: BoxFit.cover,
                                         ),
                                       ),
                                     ),

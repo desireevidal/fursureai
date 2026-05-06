@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'package:fursure/core/error/app_exceptions.dart';
 import 'package:fursure/core/theme/brand_colors.dart';
 import 'package:fursure/core/widgets/buttons.dart';
 import 'package:fursure/providers/app_providers.dart';
@@ -38,6 +39,10 @@ class _ScanAudioRecorderState extends ConsumerState<ScanAudioRecorder>
     'aac',
     'ogg',
   };
+
+  Set<String> get _acceptedUploadExtensions => Platform.isAndroid
+      ? const {'wav'}
+      : _acceptedAudioExtensions;
 
   bool _isRecording = false;
   double _currentAmplitude = 0.0;
@@ -74,30 +79,34 @@ class _ScanAudioRecorderState extends ConsumerState<ScanAudioRecorder>
   }
 
   Future<void> _toggleRecording() async {
-    if (_isRecording) {
-      if (!_canStop) return;
-      await _stopRecording();
-    } else {
-      final audioService = ref.read(audioServiceProvider);
-      final dir = await getTemporaryDirectory();
-      final path =
-          '${dir.path}/meow_${DateTime.now().millisecondsSinceEpoch}.wav';
-      await audioService.startRecording(path);
-      _pulseController.repeat();
-      _stopwatch.reset();
-      _stopwatch.start();
-      _amplitudeTimer =
-          Timer.periodic(const Duration(milliseconds: 80), (_) async {
-        final amp = await audioService.getAmplitude();
-        if (amp != null && mounted) {
-          final normalized = ((amp.current + 50) / 50).clamp(0.0, 1.0);
-          setState(() => _currentAmplitude = normalized);
-        }
-      });
-      _autoStopTimer = Timer(_maxRecordDuration, () {
-        if (mounted && _isRecording) _stopRecording();
-      });
-      setState(() => _isRecording = true);
+    try {
+      if (_isRecording) {
+        if (!_canStop) return;
+        await _stopRecording();
+      } else {
+        final audioService = ref.read(audioServiceProvider);
+        final dir = await getTemporaryDirectory();
+        final path =
+            '${dir.path}/meow_${DateTime.now().millisecondsSinceEpoch}.wav';
+        await audioService.startRecording(path);
+        _pulseController.repeat();
+        _stopwatch.reset();
+        _stopwatch.start();
+        _amplitudeTimer =
+            Timer.periodic(const Duration(milliseconds: 80), (_) async {
+          final amp = await audioService.getAmplitude();
+          if (amp != null && mounted) {
+            final normalized = ((amp.current + 50) / 50).clamp(0.0, 1.0);
+            setState(() => _currentAmplitude = normalized);
+          }
+        });
+        _autoStopTimer = Timer(_maxRecordDuration, () {
+          if (mounted && _isRecording) _stopRecording();
+        });
+        setState(() => _isRecording = true);
+      }
+    } catch (e) {
+      _showAudioError(e);
     }
   }
 
@@ -113,27 +122,60 @@ class _ScanAudioRecorderState extends ConsumerState<ScanAudioRecorder>
       _currentAmplitude = 0.0;
     });
     final audioService = ref.read(audioServiceProvider);
-    final path = await audioService.stopRecording();
-    if (path != null && mounted) {
-      await _openTrimEditor(path, deleteSourceAfterEditing: true);
+    try {
+      final path = await audioService.stopRecording();
+      if (path != null && mounted) {
+        await _openTrimEditor(path, deleteSourceAfterEditing: true);
+      }
+    } catch (e) {
+      _showAudioError(e);
     }
   }
 
   Future<void> _pickAudioFile() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: _pickerExtensions(),
-    );
-    final path = result?.files.single.path;
-    if (path == null) {
-      return;
-    }
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: _pickerExtensions(),
+        withReadStream: true,
+      );
+      final pickedFile = result?.files.single;
+      if (pickedFile == null) {
+        return;
+      }
 
-    if (!_hasAcceptedExtension(path)) {
-      return;
-    }
+      final extension = _normalizedPickedExtension(pickedFile);
+      if (extension == null ||
+          !_acceptedUploadExtensions.contains(extension)) {
+        if (mounted) {
+          final supported = Platform.isAndroid
+              ? 'WAV'
+              : 'WAV, MP3, M4A, AAC, or OGG';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Please choose a $supported audio file.',
+              ),
+            ),
+          );
+        }
+        return;
+      }
 
-    await _openTrimEditor(path);
+      final localPath = await _materializePickedAudioFile(
+        pickedFile,
+        extension: extension,
+      );
+      if (localPath == null) {
+        throw const InferenceException(
+          'We could not open that audio file. Please try another file.',
+        );
+      }
+
+      await _openTrimEditor(localPath, deleteSourceAfterEditing: true);
+    } catch (e) {
+      _showAudioError(e);
+    }
   }
 
   Future<void> _openTrimEditor(
@@ -192,6 +234,60 @@ class _ScanAudioRecorderState extends ConsumerState<ScanAudioRecorder>
     }
   }
 
+  String? _normalizedPickedExtension(PlatformFile file) {
+    final fromPath = file.path;
+    if (fromPath != null && _hasAcceptedExtension(fromPath)) {
+      return fromPath.substring(fromPath.lastIndexOf('.') + 1).toLowerCase();
+    }
+
+    final fromName = file.name;
+    final dotIndex = fromName.lastIndexOf('.');
+    if (dotIndex < 0 || dotIndex == fromName.length - 1) {
+      return null;
+    }
+
+    return fromName.substring(dotIndex + 1).toLowerCase();
+  }
+
+  Future<String?> _materializePickedAudioFile(
+    PlatformFile file, {
+    required String extension,
+  }) async {
+    final dir = await getTemporaryDirectory();
+    final outputPath =
+        '${dir.path}/picked_${DateTime.now().millisecondsSinceEpoch}.$extension';
+    final outputFile = File(outputPath);
+
+    final sourcePath = file.path;
+    if (sourcePath != null) {
+      final sourceFile = File(sourcePath);
+      if (await sourceFile.exists()) {
+        await sourceFile.copy(outputPath);
+        return outputFile.path;
+      }
+    }
+
+    final readStream = file.readStream;
+    if (readStream != null) {
+      final sink = outputFile.openWrite();
+      try {
+        await readStream.cast<List<int>>().pipe(sink);
+      } finally {
+        await sink.close();
+      }
+      if (await outputFile.exists()) {
+        return outputFile.path;
+      }
+    }
+
+    if (file.bytes != null) {
+      await outputFile.writeAsBytes(file.bytes!, flush: true);
+      return outputPath;
+    }
+
+    return null;
+  }
+
   bool _hasAcceptedExtension(String path) {
     final dotIndex = path.lastIndexOf('.');
     if (dotIndex < 0 || dotIndex == path.length - 1) {
@@ -205,11 +301,23 @@ class _ScanAudioRecorderState extends ConsumerState<ScanAudioRecorder>
 
   List<String> _pickerExtensions() {
     final extensions = <String>{
-      ..._acceptedAudioExtensions,
-      ..._acceptedAudioExtensions.map((ext) => ext.toUpperCase()),
+      ..._acceptedUploadExtensions,
+      ..._acceptedUploadExtensions.map((ext) => ext.toUpperCase()),
     }.toList();
     extensions.sort();
     return extensions;
+  }
+
+  void _showAudioError(Object error) {
+    if (!mounted) return;
+    final message = switch (error) {
+      AppException appException => appException.message,
+      _ => 'We could not open that audio file. Please try again.',
+    };
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   @override
