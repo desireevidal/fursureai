@@ -43,21 +43,26 @@ class AppTheme {
       brightness: Brightness.dark,
     );
     final colorScheme = base.copyWith(
-      primary: BrandColors.dark.purple,
+      primary: const Color(0xFFE879F9),
       onPrimary: Colors.white,
       secondary: BrandColors.dark.pink,
       onSecondary: Colors.white,
-      surface: const Color(0xFF211D24),
-      surfaceContainerLowest: const Color(0xFF19161C),
-      surfaceContainerLow: const Color(0xFF242029),
-      surfaceContainer: const Color(0xFF2A2530),
-      surfaceContainerHigh: const Color(0xFF312B38),
-      surfaceContainerHighest: const Color(0xFF38313F),
-      outlineVariant: const Color(0xFF5D5365),
+      surface: const Color(0xFF17101A),
+      onSurface: const Color(0xFFF8F2FA),
+      onSurfaceVariant: const Color(0xFFD8CADF),
+      surfaceContainerLowest: const Color(0xFF130D16),
+      surfaceContainerLow: const Color(0xFF1A121D),
+      surfaceContainer: const Color(0xFF211728),
+      surfaceContainerHigh: const Color(0xFF2A1E31),
+      surfaceContainerHighest: const Color(0xFF34243D),
+      outline: const Color(0xFF8B7A93),
+      outlineVariant: const Color(0xFF3B2F42),
+      shadow: Colors.black,
     );
 
     return ThemeData(
       colorScheme: colorScheme,
+      scaffoldBackgroundColor: const Color(0xFF17101A),
       extensions: [
         BrandColors.dark,
         AppTextStyles.base,

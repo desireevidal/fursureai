@@ -23,15 +23,19 @@ class ScanSession {
     String? audioPath,
     String? catName,
     PredictionRecord? pendingRecord,
+    bool clearSelectedImage = false,
     bool clearAudioPath = false,
     bool clearPendingRecord = false,
   }) {
     return ScanSession(
-      selectedImage: selectedImage ?? this.selectedImage,
+      selectedImage: clearSelectedImage
+          ? null
+          : (selectedImage ?? this.selectedImage),
       audioPath: clearAudioPath ? null : (audioPath ?? this.audioPath),
       catName: catName ?? this.catName,
-      pendingRecord:
-          clearPendingRecord ? null : (pendingRecord ?? this.pendingRecord),
+      pendingRecord: clearPendingRecord
+          ? null
+          : (pendingRecord ?? this.pendingRecord),
     );
   }
 }

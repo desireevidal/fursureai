@@ -25,11 +25,11 @@ class BrandColors extends ThemeExtension<BrandColors> {
   );
 
   static const dark = BrandColors(
-    purple: Color(0xFF7E1891),
+    purple: Color(0xFFB832C8),
     pink: Color(0xFFE73879),
-    deepPurple: Color(0xFF911880),
+    deepPurple: Color(0xFF871588),
     softRed: Color(0xFFD94A6B),
-    gradient: [Color(0xFFE73879), Color(0xFF911880)],
+    gradient: [Color(0xFFE73879), Color(0xFF871588)],
   );
 
   @override

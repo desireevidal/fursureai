@@ -33,7 +33,7 @@ class AudioPreprocessor {
 
     if (!_hasUsableMeowSignal(candidate)) {
       throw const InferenceException(
-        'No meow detected. Please try again with a clearer meow.',
+        'We couldn’t detect a clear meow. Please try again in a quieter place or record closer to your cat.',
       );
     }
 

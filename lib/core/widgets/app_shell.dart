@@ -16,6 +16,7 @@ class AppShell extends StatelessWidget {
     final lo = context.layout;
     final surface = Theme.of(context).colorScheme.surface;
     final brand = context.brand;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       extendBody: true,
@@ -26,7 +27,7 @@ class AppShell extends StatelessWidget {
             left: 0,
             right: 0,
             bottom: 0,
-            height: lo.navBarTotalHeight + 112,
+            height: lo.navBarTotalHeight + 172,
             child: IgnorePointer(
               child: Stack(
                 children: [
@@ -36,60 +37,38 @@ class AppShell extends StatelessWidget {
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
-                          stops: const [0.0, 0.42, 0.70, 1.0],
+                          stops: const [0.0, 0.38, 0.72, 1.0],
                           colors: [
-                            surface.withValues(alpha: 0.00),
-                            surface.withValues(alpha: 0.14),
-                            surface.withValues(alpha: 0.72),
-                            Color.alphaBlend(
-                              brand.purple.withValues(alpha: 0.06),
-                              surface.withValues(alpha: 0.97),
-                            ),
+                            surface.withValues(alpha: 0.0),
+                            surface.withValues(alpha: 0.12),
+                            surface.withValues(alpha: 0.66),
+                            surface.withValues(alpha: 0.96),
                           ],
                         ),
                       ),
                     ),
                   ),
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: lo.navBarBottomGap - 8,
-                    height: lo.navBarScanFabSize + 44,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            surface.withValues(alpha: 0.00),
-                            surface.withValues(alpha: 0.52),
-                            surface.withValues(alpha: 0.90),
-                          ],
-                          stops: const [0.0, 0.55, 1.0],
+                  if (!isDark)
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      height: lo.navBarTotalHeight + 40,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              brand.purple.withValues(alpha: 0.0),
+                              brand.purple.withValues(alpha: 0.16),
+                              brand.purple.withValues(alpha: 0.28),
+                            ],
+                            stops: const [0.0, 0.58, 1.0],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  Positioned(
-                    left: lo.navBarSideMargin,
-                    right: lo.navBarSideMargin,
-                    bottom: lo.navBarBottomGap + 6,
-                    height: lo.navBarScanFabSize + 28,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: RadialGradient(
-                          center: const Alignment(0, 0.55),
-                          radius: 0.92,
-                          colors: [
-                            brand.pink.withValues(alpha: 0.14),
-                            brand.purple.withValues(alpha: 0.08),
-                            surface.withValues(alpha: 0.00),
-                          ],
-                          stops: const [0.0, 0.48, 1.0],
-                        ),
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -188,7 +167,20 @@ class _CustomNavBarState extends State<_CustomNavBar>
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final brand = context.brand;
     final lo = context.layout;
+    final navSurface = isDark
+        ? const Color(0xFF24182A).withValues(alpha: 0.92)
+        : colorScheme.surface;
+    final selectedPillColor = isDark
+        ? Color.lerp(brand.purple, brand.pink, 0.24)!.withValues(alpha: 0.14)
+        : colorScheme.secondaryContainer;
+    final selectedIconColor = isDark
+        ? Colors.white
+        : colorScheme.onSecondaryContainer;
+    final unselectedIconColor = isDark
+        ? const Color(0xFFE5D5EA).withValues(alpha: 0.78)
+        : colorScheme.onSurfaceVariant;
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
@@ -209,19 +201,33 @@ class _CustomNavBarState extends State<_CustomNavBar>
               bottom: lo.navBarFabOverflow + 4,
               child: Container(
                 decoration: BoxDecoration(
-                  color: colorScheme.surface,
+                  color: navSurface,
                   borderRadius: context.radius.xxl,
                   boxShadow: [
+                    if (isDark) ...[
+                      BoxShadow(
+                        color: brand.purple.withValues(alpha: 0.15),
+                        blurRadius: 24,
+                        spreadRadius: 1,
+                        offset: const Offset(0, 2),
+                      ),
+                      BoxShadow(
+                        color: brand.pink.withValues(alpha: 0.08),
+                        blurRadius: 18,
+                        spreadRadius: 0,
+                        offset: const Offset(0, -1),
+                      ),
+                    ],
                     BoxShadow(
                       color: colorScheme.shadow.withValues(
-                        alpha: isDark ? 0.40 : 0.10,
+                        alpha: isDark ? 0.20 : 0.10,
                       ),
                       blurRadius: 20,
                       offset: const Offset(0, 4),
                     ),
                     BoxShadow(
                       color: colorScheme.shadow.withValues(
-                        alpha: isDark ? 0.20 : 0.05,
+                        alpha: isDark ? 0.10 : 0.05,
                       ),
                       blurRadius: 6,
                       offset: const Offset(0, 1),
@@ -256,7 +262,7 @@ class _CustomNavBarState extends State<_CustomNavBar>
                                 child: Container(
                                   width: indicatorWidth,
                                   decoration: BoxDecoration(
-                                    color: colorScheme.secondaryContainer,
+                                    color: selectedPillColor,
                                     borderRadius: context.radius.xxl,
                                   ),
                                 ),
@@ -278,10 +284,8 @@ class _CustomNavBarState extends State<_CustomNavBar>
                                       ),
                                       onTap: () =>
                                           widget.onDestinationSelected(0),
-                                      selectedColor:
-                                          colorScheme.onSecondaryContainer,
-                                      unselectedColor:
-                                          colorScheme.onSurfaceVariant,
+                                      selectedColor: selectedIconColor,
+                                      unselectedColor: unselectedIconColor,
                                     ),
                                   ),
                                 ),
@@ -300,10 +304,8 @@ class _CustomNavBarState extends State<_CustomNavBar>
                                       ),
                                       onTap: () =>
                                           widget.onDestinationSelected(1),
-                                      selectedColor:
-                                          colorScheme.onSecondaryContainer,
-                                      unselectedColor:
-                                          colorScheme.onSurfaceVariant,
+                                      selectedColor: selectedIconColor,
+                                      unselectedColor: unselectedIconColor,
                                     ),
                                   ),
                                 ),
@@ -315,8 +317,8 @@ class _CustomNavBarState extends State<_CustomNavBar>
                     );
                   },
                 ),
+              ),
             ),
-          ),
             Semantics(
               button: true,
               label: 'Scan a cat',

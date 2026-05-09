@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fursure/core/config/app_config.dart';
@@ -43,6 +42,7 @@ class DownloadProgressNotifier extends Notifier<ModelDownloadState> {
   @override
   ModelDownloadState build() => const ModelDownloadState();
 
+  void reset() => state = const ModelDownloadState();
   void startDownloading() => state = state.copyWith(isDownloading: true);
   void setBreedProgress(double p) => state = state.copyWith(breedProgress: p);
   void setGenderProgress(double p) =>
@@ -62,35 +62,36 @@ class StartupController extends AsyncNotifier<String> {
     // downloadProgressProvider, which would otherwise throw:
     // "Providers are not allowed to modify other providers during their initialization."
     await Future<void>.microtask(() {});
+    final progressNotifier = ref.read(downloadProgressProvider.notifier);
+    progressNotifier.reset();
 
-    if (!AppConfig.breedSpec.usePlaceholder || !AppConfig.genderSpec.usePlaceholder) {
-      final bool hasCompletedInitialPreload = kDebugMode
-          ? false
-          : await ref
-                .read(startupServiceProvider)
-                .hasCompletedInitialModelPreload();
+    if (!AppConfig.breedSpec.usePlaceholder ||
+        !AppConfig.genderSpec.usePlaceholder) {
+      final bool hasCompletedInitialPreload = await ref
+          .read(startupServiceProvider)
+          .hasCompletedInitialModelPreload();
 
       if (!hasCompletedInitialPreload) {
-        final progressNotifier = ref.read(downloadProgressProvider.notifier);
         progressNotifier.startDownloading();
 
         await ref.read(modelDownloadServiceProvider).preloadModels(
           [
-            (spec: AppConfig.breedSpec, onProgress: progressNotifier.setBreedProgress),
-            (spec: AppConfig.genderSpec, onProgress: progressNotifier.setGenderProgress),
+            (
+              spec: AppConfig.breedSpec,
+              onProgress: progressNotifier.setBreedProgress,
+            ),
+            (
+              spec: AppConfig.genderSpec,
+              onProgress: progressNotifier.setGenderProgress,
+            ),
           ],
-          forceRedownload: kDebugMode,
+          forceRedownload: false,
         );
 
         progressNotifier.markComplete();
-        // Brief pause so the user sees the confirmation state.
-        await Future<void>.delayed(const Duration(milliseconds: 1800));
-
-        if (!kDebugMode) {
-          await ref
-              .read(startupServiceProvider)
-              .markInitialModelPreloadComplete();
-        }
+        await ref
+            .read(startupServiceProvider)
+            .markInitialModelPreloadComplete();
       }
     }
 

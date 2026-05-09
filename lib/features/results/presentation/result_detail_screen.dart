@@ -127,6 +127,7 @@ class _DetailView extends StatefulWidget {
 
 class _DetailViewState extends State<_DetailView> {
   final ScrollController _scrollController = ScrollController();
+  static const double _topFadeTriggerOffset = 230.0;
   bool _showTopFade = false;
 
   @override
@@ -146,7 +147,7 @@ class _DetailViewState extends State<_DetailView> {
   void _handleScroll() {
     final shouldShow =
         _scrollController.hasClients &&
-        _scrollController.offset > 8;
+        _scrollController.offset > _topFadeTriggerOffset;
     if (shouldShow != _showTopFade && mounted) {
       setState(() => _showTopFade = shouldShow);
     }
@@ -166,7 +167,7 @@ class _DetailViewState extends State<_DetailView> {
     final lo = context.layout;
     final contentMaxWidth = _adaptiveContentMaxWidth(viewportWidth);
     final expandedPurpleHeight = topPad + headerBarHeight + surfaceOverlap;
-    final topSpacer = expandedPurpleHeight - surfaceOverlap;
+    final topSpacer = 0.0;
     final metaTopPadding = lo.screenPadV;
 
     final hasBreed =
@@ -229,10 +230,20 @@ class _DetailViewState extends State<_DetailView> {
               clipBehavior: Clip.antiAlias,
             ),
           ),
-          Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: contentMaxWidth),
-              child: Column(
+          Positioned(
+            top: expandedPurpleHeight - surfaceOverlap,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: ClipRRect(
+              borderRadius: BorderRadius.only(
+                topLeft: context.radius.xxl.topLeft,
+                topRight: context.radius.xxl.topRight,
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: contentMaxWidth),
+                  child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   SizedBox(height: topSpacer),
@@ -359,6 +370,8 @@ class _DetailViewState extends State<_DetailView> {
                     ),
                   ),
                 ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -366,7 +379,7 @@ class _DetailViewState extends State<_DetailView> {
             top: expandedPurpleHeight - surfaceOverlap,
             left: 0,
             right: 0,
-            height: 64,
+            height: 92,
             child: IgnorePointer(
               child: AnimatedOpacity(
                 duration: const Duration(milliseconds: 180),
@@ -383,10 +396,11 @@ class _DetailViewState extends State<_DetailView> {
                       end: Alignment.bottomCenter,
                       colors: [
                         Theme.of(context).colorScheme.surface,
-                        Theme.of(context).colorScheme.surface.withValues(alpha: 0.78),
+                        Theme.of(context).colorScheme.surface,
+                        Theme.of(context).colorScheme.surface.withValues(alpha: 0.64),
                         Theme.of(context).colorScheme.surface.withValues(alpha: 0.0),
                       ],
-                      stops: const [0.0, 0.42, 1.0],
+                      stops: const [0.0, 0.34, 0.68, 1.0],
                     ),
                   ),
                 ),
@@ -571,3 +585,4 @@ double _adaptiveContentMaxWidth(double width) {
   if (width >= 800) return 680;
   return width;
 }
+

@@ -42,6 +42,7 @@ class ScanResultsStep extends StatefulWidget {
 
 class _ScanResultsStepState extends State<ScanResultsStep> {
   final ScrollController _scrollController = ScrollController();
+  static const double _topFadeTriggerOffset = 230.0;
   bool _showTopFade = false;
 
   @override
@@ -61,7 +62,7 @@ class _ScanResultsStepState extends State<ScanResultsStep> {
   void _handleScroll() {
     final shouldShow =
         _scrollController.hasClients &&
-        _scrollController.offset > 8;
+        _scrollController.offset > _topFadeTriggerOffset;
     if (shouldShow != _showTopFade && mounted) {
       setState(() => _showTopFade = shouldShow);
     }
@@ -78,10 +79,18 @@ class _ScanResultsStepState extends State<ScanResultsStep> {
     final spacing = context.spacing;
     final lo = context.layout;
     final expandedPurpleHeight = topPad + headerBarHeight + surfaceOverlap;
-    final topSpacer = expandedPurpleHeight - surfaceOverlap;
+    final topSpacer = 0.0;
     final metaTopPadding = lo.screenPadV;
     final onPrimary = Theme.of(context).colorScheme.onPrimary;
     final brand = context.brand;
+    final isTabletLayout = viewportWidth >= 720;
+    final footerTopPadding =
+        isTabletLayout ? spacing.xl + 44 : spacing.xxl + 104;
+    final footerPurpleHeight =
+        lo.navBarTotalHeight + (isTabletLayout ? 20 : 36);
+    final scrollBottomPadding = isTabletLayout
+        ? lo.navBarScanFabSize + spacing.m
+        : lo.navBarScanFabSize + spacing.xl;
 
     final breedResult = widget.predictionResult?.breedResult;
     final genderResult = widget.predictionResult?.genderResult;
@@ -121,155 +130,243 @@ class _ScanResultsStepState extends State<ScanResultsStep> {
               clipBehavior: Clip.antiAlias,
             ),
           ),
-          Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: contentMaxWidth),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SizedBox(height: topSpacer),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      controller: _scrollController,
-                      physics: const AlwaysScrollableScrollPhysics(
-                        parent: ClampingScrollPhysics(),
-                      ),
-                      child: Padding(
-                        padding: EdgeInsets.fromLTRB(
-                          lo.screenPadH,
-                          metaTopPadding,
-                          lo.screenPadH,
-                          0,
-                        ),
-                        child: Column(
-                          children: [
-                            Container(
-                              width: circleSize,
-                              height: circleSize,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [brand.pink, brand.purple, brand.deepPurple],
-                                ),
-                              ),
-                              padding: const EdgeInsets.all(3),
-                              child: ClipOval(
-                                child: widget.selectedImage != null
-                                    ? Image.file(
-                                        widget.selectedImage!,
-                                        fit: BoxFit.cover,
-                                      )
-                                    : ColoredBox(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.surfaceContainerHighest,
-                                      ),
-                              ),
-                            ),
-                            SizedBox(height: spacing.lg),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Semantics(
-                                  label: 'Cat name: ${widget.catName}',
-                                  child: Label(
-                                    widget.catName,
-                                    variant: LabelVariant.h2,
-                                    size: 28,
-                                  ),
-                                ),
-                                SizedBox(width: spacing.sm),
-                                Semantics(
-                                  button: true,
-                                  label: 'Edit cat name',
-                                  child: GestureDetector(
-                                    onTap: widget.onEditName,
-                                    child: Icon(
-                                      Icons.edit_outlined,
-                                      size: 20,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: spacing.m),
-                            _TagsRow(
-                              breedResult: breedResult,
-                              genderResult: genderResult,
-                            ),
-                            SizedBox(height: lo.screenPadV),
-                            if (genderResult != null) ...[
-                              Semantics(
-                                label: 'Gender: ${genderResult.gender}',
-                                child: GenderResultCard(result: genderResult),
-                              ),
-                              SizedBox(height: spacing.m),
-                            ],
-                            if (breedResult != null)
-                              Semantics(
-                                label: 'Breed: ${breedResult.breed}',
-                                child: BreedResultCard(result: breedResult),
-                              ),
-                            if (breedResult != null) ...[
-                              SizedBox(height: spacing.m),
-                              BreedInfoPreviewList(
-                                rawBreed: breedResult.shouldShowSecondary
-                                    ? '${breedResult.breed}, ${breedResult.secondaryBreed}'
-                                    : breedResult.breed,
-                              ),
-                            ],
-                            if (breedResult == null && genderResult == null)
-                              const UnavailableCard(),
-                            SizedBox(height: spacing.sm),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  SafeArea(
-                    top: false,
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        lo.screenPadH,
-                        spacing.m,
-                        lo.screenPadH,
-                        spacing.lg,
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Button(
-                              label: 'Cancel',
-                              variant: ButtonVariant.outlined,
-                              onPressed: widget.onCancel,
-                            ),
-                          ),
-                          SizedBox(width: spacing.m),
-                          Expanded(
-                            child: Button(
-                              label: 'Save',
-                              variant: ButtonVariant.primary,
-                              onPressed: widget.onSave,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
           Positioned(
             top: expandedPurpleHeight - surfaceOverlap,
             left: 0,
             right: 0,
-            height: 64,
+            bottom: 0,
+            child: ClipRRect(
+              borderRadius: BorderRadius.only(
+                topLeft: context.radius.xxl.topLeft,
+                topRight: context.radius.xxl.topRight,
+              ),
+              child: Stack(
+                children: [
+                  Align(
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: contentMaxWidth),
+                      child: SingleChildScrollView(
+                        controller: _scrollController,
+                        physics: const AlwaysScrollableScrollPhysics(
+                          parent: ClampingScrollPhysics(),
+                        ),
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(
+                            lo.screenPadH,
+                            topSpacer + metaTopPadding,
+                            lo.screenPadH,
+                            scrollBottomPadding,
+                          ),
+                          child: Column(
+                            children: [
+                              Container(
+                                width: circleSize,
+                                height: circleSize,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      brand.pink,
+                                      brand.purple,
+                                      brand.deepPurple,
+                                    ],
+                                  ),
+                                ),
+                                padding: const EdgeInsets.all(3),
+                                child: ClipOval(
+                                  child: widget.selectedImage != null
+                                      ? Image.file(
+                                          widget.selectedImage!,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : ColoredBox(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .surfaceContainerHighest,
+                                        ),
+                                ),
+                              ),
+                              SizedBox(height: spacing.lg),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Semantics(
+                                    label: 'Cat name: ${widget.catName}',
+                                    child: Label(
+                                      widget.catName,
+                                      variant: LabelVariant.h2,
+                                      size: 28,
+                                    ),
+                                  ),
+                                  SizedBox(width: spacing.sm),
+                                  Semantics(
+                                    button: true,
+                                    label: 'Edit cat name',
+                                    child: GestureDetector(
+                                      onTap: widget.onEditName,
+                                      child: Icon(
+                                        Icons.edit_outlined,
+                                        size: 20,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: spacing.m),
+                              _TagsRow(
+                                breedResult: breedResult,
+                                genderResult: genderResult,
+                              ),
+                              SizedBox(height: lo.screenPadV),
+                              if (genderResult != null) ...[
+                                Semantics(
+                                  label: 'Gender: ${genderResult.gender}',
+                                  child: GenderResultCard(result: genderResult),
+                                ),
+                                SizedBox(height: spacing.m),
+                              ],
+                              if (breedResult != null)
+                                Semantics(
+                                  label: 'Breed: ${breedResult.breed}',
+                                  child: BreedResultCard(result: breedResult),
+                                ),
+                              if (breedResult != null) ...[
+                                SizedBox(height: spacing.m),
+                                BreedInfoPreviewList(
+                                  rawBreed: breedResult.shouldShowSecondary
+                                      ? '${breedResult.breed}, ${breedResult.secondaryBreed}'
+                                      : breedResult.breed,
+                                ),
+                              ],
+                              if (breedResult == null && genderResult == null)
+                                const UnavailableCard(),
+                              SizedBox(height: spacing.m),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        child: SafeArea(
+                          top: false,
+                          bottom: false,
+                          child: Stack(
+                            children: [
+                              Positioned.fill(
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Theme.of(context)
+                                            .colorScheme
+                                            .surface
+                                            .withValues(alpha: 0.0),
+                                        Theme.of(context)
+                                            .colorScheme
+                                            .surface
+                                            .withValues(
+                                              alpha: isTabletLayout ? 0.50 : 0.62,
+                                            ),
+                                        Theme.of(context)
+                                            .colorScheme
+                                            .surface
+                                            .withValues(
+                                              alpha: isTabletLayout ? 0.86 : 0.94,
+                                            ),
+                                        Theme.of(context).colorScheme.surface,
+                                        Theme.of(context).colorScheme.surface,
+                                      ],
+                                      stops: [
+                                        0.0,
+                                        isTabletLayout ? 0.42 : 0.36,
+                                        isTabletLayout ? 0.66 : 0.60,
+                                        isTabletLayout ? 0.80 : 0.74,
+                                        1.0,
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                height: footerPurpleHeight,
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        brand.purple.withValues(alpha: 0.0),
+                                        brand.purple.withValues(alpha: 0.16),
+                                        brand.purple.withValues(alpha: 0.27),
+                                      ],
+                                      stops: const [0.0, 0.58, 1.0],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Center(
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    maxWidth: contentMaxWidth,
+                                  ),
+                                  child: Padding(
+                                    padding: EdgeInsets.fromLTRB(
+                                      lo.screenPadH,
+                                      footerTopPadding,
+                                      lo.screenPadH,
+                                      MediaQuery.paddingOf(context).bottom +
+                                          spacing.lg,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Button(
+                                            label: 'Cancel',
+                                            variant: ButtonVariant.outlined,
+                                            onPressed: widget.onCancel,
+                                          ),
+                                        ),
+                                        SizedBox(width: spacing.m),
+                                        Expanded(
+                                          child: Button(
+                                            label: 'Save',
+                                            variant: ButtonVariant.primary,
+                                            onPressed: widget.onSave,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          Positioned(
+            top: expandedPurpleHeight - surfaceOverlap,
+            left: 0,
+            right: 0,
+            height: 92,
             child: IgnorePointer(
               child: AnimatedOpacity(
                 duration: const Duration(milliseconds: 180),
@@ -286,10 +383,11 @@ class _ScanResultsStepState extends State<ScanResultsStep> {
                       end: Alignment.bottomCenter,
                       colors: [
                         Theme.of(context).colorScheme.surface,
-                        Theme.of(context).colorScheme.surface.withValues(alpha: 0.78),
+                        Theme.of(context).colorScheme.surface,
+                        Theme.of(context).colorScheme.surface.withValues(alpha: 0.64),
                         Theme.of(context).colorScheme.surface.withValues(alpha: 0.0),
                       ],
-                      stops: const [0.0, 0.42, 1.0],
+                      stops: const [0.0, 0.34, 0.68, 1.0],
                     ),
                   ),
                 ),
@@ -399,3 +497,4 @@ double _adaptiveContentMaxWidth(double width) {
   if (width >= 800) return 680;
   return width;
 }
+

@@ -31,8 +31,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   String? _selectedGender;
   bool _showSearch = false;
   bool _sortMostRecent = true;
+  bool _showGridTopFade = false;
   final Set<int> _selectedIds = <int>{};
   late final TextEditingController _searchController;
+  late final ScrollController _historyScrollController;
 
   bool get _isSelectionMode => _selectedIds.isNotEmpty;
 
@@ -40,22 +42,41 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   void initState() {
     super.initState();
     _searchController = TextEditingController();
+    _historyScrollController = ScrollController()
+      ..addListener(_handleHistoryScroll);
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _historyScrollController
+      ..removeListener(_handleHistoryScroll)
+      ..dispose();
     super.dispose();
   }
+
+  void _handleHistoryScroll() {
+    final shouldShow =
+        _historyScrollController.hasClients &&
+        _historyScrollController.offset > 24;
+    if (shouldShow != _showGridTopFade && mounted) {
+      setState(() => _showGridTopFade = shouldShow);
+    }
+  }
+
+  bool get _shouldShowGridTopFade =>
+      _showGridTopFade &&
+      _historyScrollController.hasClients &&
+      _historyScrollController.offset > 24;
 
   @override
   Widget build(BuildContext context) {
     final viewportWidth = MediaQuery.sizeOf(context).width;
     final resultsAsync = ref.watch(resultsControllerProvider);
-    final lo = context.layout;
     final surfaceColor = Theme.of(context).colorScheme.surface;
     final contentMaxWidth = _adaptiveContentMaxWidth(viewportWidth);
     final headerGradient = _collectionHeaderGradient(context.brand);
+    final radius = context.radius.xxl;
 
     return AppPage(
       hasBottomNav: true,
@@ -87,10 +108,15 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               child: Container(
                 decoration: BoxDecoration(
                   color: surfaceColor,
+                  borderRadius: BorderRadius.only(
+                    topLeft: radius.topLeft,
+                    topRight: radius.topRight,
+                  ),
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: SafeArea(
                   top: false,
+                  bottom: false,
                   child: Align(
                     alignment: Alignment.topCenter,
                     child: ConstrainedBox(
@@ -154,12 +180,63 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                               Expanded(
                                 child: filteredRecords.isEmpty
                                     ? const _NoMatchesState()
-                                    : _HistoryGrid(
-                                        records: filteredRecords,
-                                        isSelectionMode: _isSelectionMode,
-                                        selectedIds: _selectedIds,
-                                        onToggleSelection: _toggleSelection,
-                                        onStartSelection: _startSelection,
+                                    : Stack(
+                                        children: [
+                                          _HistoryGrid(
+                                            controller:
+                                                _historyScrollController,
+                                            records: filteredRecords,
+                                            isSelectionMode: _isSelectionMode,
+                                            selectedIds: _selectedIds,
+                                            onToggleSelection:
+                                                _toggleSelection,
+                                            onStartSelection: _startSelection,
+                                          ),
+                                          Positioned(
+                                            top: 0,
+                                            left: 0,
+                                            right: 0,
+                                            height: 52,
+                                            child: IgnorePointer(
+                                              child: AnimatedOpacity(
+                                                duration: const Duration(
+                                                  milliseconds: 180,
+                                                ),
+                                                curve: Curves.easeOut,
+                                                opacity:
+                                                    _shouldShowGridTopFade
+                                                        ? 1
+                                                        : 0,
+                                                child: DecoratedBox(
+                                                  decoration: BoxDecoration(
+                                                    gradient: LinearGradient(
+                                                      begin:
+                                                          Alignment.topCenter,
+                                                      end: Alignment
+                                                          .bottomCenter,
+                                                      colors: [
+                                                        surfaceColor,
+                                                        surfaceColor
+                                                            .withValues(
+                                                          alpha: 0.76,
+                                                        ),
+                                                        surfaceColor
+                                                            .withValues(
+                                                          alpha: 0.0,
+                                                        ),
+                                                      ],
+                                                      stops: const [
+                                                        0.0,
+                                                        0.42,
+                                                        1.0,
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                               ),
                             ],
@@ -172,7 +249,6 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 ),
               ),
             ),
-            SizedBox(height: lo.navBarBottomGap),
           ],
         ),
       ),
@@ -397,7 +473,7 @@ class HistoryTile extends StatelessWidget {
                               ),
                               SizedBox(height: spacing.xs),
                               _MetaRow(icon: Icons.pets_outlined, text: breedLabel),
-                              const Spacer(),
+                              SizedBox(height: spacing.sm),
                               Label(
                                 _timeAgo(record.timestamp),
                                 variant: LabelVariant.caption,
@@ -553,6 +629,7 @@ class _MetaRow extends StatelessWidget {
 
 class _HistoryGrid extends StatelessWidget {
   const _HistoryGrid({
+    required this.controller,
     required this.records,
     required this.isSelectionMode,
     required this.selectedIds,
@@ -560,6 +637,7 @@ class _HistoryGrid extends StatelessWidget {
     required this.onStartSelection,
   });
 
+  final ScrollController controller;
   final List<PredictionRecord> records;
   final bool isSelectionMode;
   final Set<int> selectedIds;
@@ -571,31 +649,54 @@ class _HistoryGrid extends StatelessWidget {
     final spacing = context.spacing;
     final lo = context.layout;
     final screenSize = MediaQuery.sizeOf(context);
+    final bottomClearance = MediaQuery.paddingOf(context).bottom + spacing.lg;
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final isLandscape = screenSize.width > screenSize.height;
-        final int columns = switch (constraints.maxWidth) {
-          >= 1200 => isLandscape ? 5 : 4,
-          >= 900 => isLandscape ? 4 : 3,
-          >= 760 => 3,
-          _ => 2,
-        };
-        final childAspectRatio = switch ((constraints.maxWidth, isLandscape)) {
-          (>= 1200, true) => 1.18,
-          (>= 900, true) => 1.08,
-          (>= 760, true) => 0.98,
-          (_, true) => 0.92,
-          (>= 1200, false) => 0.84,
-          _ => 0.83,
-        };
+        final isTallTabletPortrait = !isLandscape &&
+            screenSize.height >= 1000 &&
+            constraints.maxWidth >= 560;
+
+        late final int columns;
+        if (constraints.maxWidth >= 1200) {
+          columns = isLandscape ? 5 : 4;
+        } else if (constraints.maxWidth >= 900) {
+          columns = isLandscape ? 4 : 3;
+        } else if (constraints.maxWidth >= 760 || isTallTabletPortrait) {
+          columns = 3;
+        } else {
+          columns = 2;
+        }
+
+        late final double childAspectRatio;
+        if (isLandscape) {
+          if (constraints.maxWidth >= 1200) {
+            childAspectRatio = 1.18;
+          } else if (constraints.maxWidth >= 900) {
+            childAspectRatio = 1.08;
+          } else if (constraints.maxWidth >= 760) {
+            childAspectRatio = 0.98;
+          } else {
+            childAspectRatio = 0.92;
+          }
+        } else if (isTallTabletPortrait && constraints.maxWidth < 760) {
+          childAspectRatio = 0.82;
+        } else if (constraints.maxWidth >= 1200) {
+          childAspectRatio = 0.84;
+        } else if (constraints.maxWidth >= 760) {
+          childAspectRatio = 0.94;
+        } else {
+          childAspectRatio = 0.83;
+        }
 
         return GridView.builder(
+          controller: controller,
           padding: EdgeInsets.fromLTRB(
             lo.screenPadH,
             spacing.sm,
             lo.screenPadH,
-            lo.navBarTotalHeight + lo.screenPadV,
+            bottomClearance,
           ),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columns,

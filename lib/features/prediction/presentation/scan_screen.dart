@@ -47,51 +47,51 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
   @override
   void initState() {
     super.initState();
-    _predictionListener = ref.listenManual(
-      scanPredictionControllerProvider,
-      (previous, next) {
-        next.whenOrNull(
-          data: (result) {
-            if (result != null && mounted) {
-              setState(() {
-                _session = _session.copyWith(pendingRecord: result.pendingRecord);
-                _step = ScanStep.results;
-              });
-            }
-          },
-          error: (error, _) async {
-            final message = error is AppException ? error.message : '$error';
-            if (!mounted) {
-              return;
-            }
+    _predictionListener = ref.listenManual(scanPredictionControllerProvider, (
+      previous,
+      next,
+    ) {
+      next.whenOrNull(
+        data: (result) {
+          if (result != null && mounted) {
+            setState(() {
+              _session = _session.copyWith(pendingRecord: result.pendingRecord);
+              _step = ScanStep.results;
+            });
+          }
+        },
+        error: (error, _) async {
+          final message = error is AppException ? error.message : '$error';
+          if (!mounted) {
+            return;
+          }
 
-            if (message.startsWith('No meow detected')) {
-              await _showNoMeowDetectedDialog();
-              if (!mounted) return;
-
-              ref.invalidate(scanPredictionControllerProvider);
-              setState(() {
-                _session = _session.copyWith(
-                  clearAudioPath: true,
-                  clearPendingRecord: true,
-                );
-                _step = ScanStep.audio;
-              });
-              return;
-            }
-
-            await _showBreedPredictionErrorDialog(message);
+          if (message.startsWith('No meow detected')) {
+            await _showNoMeowDetectedDialog();
             if (!mounted) return;
 
             ref.invalidate(scanPredictionControllerProvider);
             setState(() {
-              _session = _session.copyWith(clearPendingRecord: true);
-              _step = ScanStep.photo;
+              _session = _session.copyWith(
+                clearAudioPath: true,
+                clearPendingRecord: true,
+              );
+              _step = ScanStep.audio;
             });
-          },
-        );
-      },
-    );
+            return;
+          }
+
+          await _showBreedPredictionErrorDialog(message);
+          if (!mounted) return;
+
+          ref.invalidate(scanPredictionControllerProvider);
+          setState(() {
+            _session = _session.copyWith(clearPendingRecord: true);
+            _step = ScanStep.photo;
+          });
+        },
+      );
+    });
   }
 
   @override
@@ -103,6 +103,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
   }
 
   Future<void> _pickImage(ImageSource source) async {
+    final shouldReturnToPreview = _session.audioPath != null;
     final picked = await ImagePicker().pickImage(
       source: source,
       imageQuality: 85,
@@ -127,8 +128,11 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
 
     _deleteSessionImageFile(_session.selectedImage);
     setState(() {
-      _session = _session.copyWith(selectedImage: File(editedPath));
-      _step = ScanStep.audio;
+      _session = _session.copyWith(
+        selectedImage: File(editedPath),
+        clearPendingRecord: true,
+      );
+      _step = shouldReturnToPreview ? ScanStep.preview : ScanStep.audio;
     });
   }
 
@@ -142,11 +146,13 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
 
   void _onConfirmPreview() {
     setState(() => _step = ScanStep.loading);
-    ref.read(scanPredictionControllerProvider.notifier).predict(
-      image: _session.selectedImage,
-      audioPath: _session.audioPath,
-      catName: _session.catName,
-    );
+    ref
+        .read(scanPredictionControllerProvider.notifier)
+        .predict(
+          image: _session.selectedImage,
+          audioPath: _session.audioPath,
+          catName: _session.catName,
+        );
   }
 
   void _retake() {
@@ -154,6 +160,17 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     _deleteSessionImageFile(_session.selectedImage);
     setState(() {
       _session = const ScanSession();
+      _step = ScanStep.photo;
+    });
+  }
+
+  void _retakePhotoKeepingAudio() {
+    _deleteSessionImageFile(_session.selectedImage);
+    setState(() {
+      _session = _session.copyWith(
+        clearSelectedImage: true,
+        clearPendingRecord: true,
+      );
       _step = ScanStep.photo;
     });
   }
@@ -182,7 +199,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     }
 
     if (shouldRerecord == false) {
-      _retake();
+      _retakePhotoKeepingAudio();
     }
   }
 
@@ -314,11 +331,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                   ),
                 ),
               ),
-              Icon(
-                Icons.mic_off_rounded,
-                size: 36,
-                color: brand.pink,
-              ),
+              Icon(Icons.mic_off_rounded, size: 36, color: brand.pink),
               SizedBox(height: spacing.sm),
               const Label(
                 'No Meow Detected',
@@ -473,7 +486,10 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
       ScanStep.results => ScanResultsStep(
         catName: _session.catName,
         selectedImage: _session.selectedImage,
-        predictionResult: ref.watch(scanPredictionControllerProvider).asData?.value,
+        predictionResult: ref
+            .watch(scanPredictionControllerProvider)
+            .asData
+            ?.value,
         onEditName: _editCatName,
         onSave: _saveAndDone,
         onCancel: _confirmDiscardResult,

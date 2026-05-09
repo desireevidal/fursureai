@@ -291,56 +291,60 @@ class _ScanPhotoEditorState extends State<ScanPhotoEditor> {
                                       ),
                                     ],
                                   ),
-                                  child: RepaintBoundary(
-                                    key: _cropKey,
-                                    child: Container(
+                                  child: ClipRRect(
+                                    borderRadius: context.radius.lg,
+                                    child: SizedBox(
                                       width: cropSize,
                                       height: cropSize,
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: context.radius.lg,
-                                        border: Border.all(
-                                          color: brand.purple.withValues(alpha: 0.18),
-                                        ),
-                                      ),
-                                      clipBehavior: Clip.antiAlias,
                                       child: Stack(
                                         fit: StackFit.expand,
                                         children: [
-                                          InteractiveViewer(
-                                            transformationController:
-                                                _transformationController,
-                                            minScale: 1.0,
-                                            maxScale: 4.0,
-                                            panEnabled: true,
-                                            scaleEnabled: true,
-                                            boundaryMargin: EdgeInsets.zero,
-                                            clipBehavior: Clip.hardEdge,
-                                            constrained: false,
-                                            onInteractionUpdate: (_) =>
-                                                _clampTransform(),
-                                            onInteractionEnd: (_) =>
-                                                _clampTransform(),
-                                            child: SizedBox(
-                                              width: _effectiveDisplayImageSize!.width,
-                                              height: _effectiveDisplayImageSize!.height,
-                                              child: Center(
-                                                child: Transform(
-                                                  alignment: Alignment.center,
-                                                  transform: Matrix4.identity()
-                                                    ..scaleByDouble(
-                                                      _flipHorizontal ? -1.0 : 1.0,
-                                                      _flipVertical ? -1.0 : 1.0,
-                                                      1.0,
-                                                      1.0,
-                                                    )
-                                                    ..rotateZ(_quarterTurns * math.pi / 2),
+                                          RepaintBoundary(
+                                            key: _cropKey,
+                                            child: ClipRect(
+                                              child: ColoredBox(
+                                                color: Colors.white,
+                                                child: InteractiveViewer(
+                                                  transformationController:
+                                                      _transformationController,
+                                                  minScale: 1.0,
+                                                  maxScale: 4.0,
+                                                  panEnabled: true,
+                                                  scaleEnabled: true,
+                                                  boundaryMargin: EdgeInsets.zero,
+                                                  clipBehavior: Clip.hardEdge,
+                                                  constrained: false,
+                                                  onInteractionUpdate: (_) =>
+                                                      _clampTransform(),
+                                                  onInteractionEnd: (_) =>
+                                                      _clampTransform(),
                                                   child: SizedBox(
-                                                    width: _displayImageSize!.width,
-                                                    height: _displayImageSize!.height,
-                                                    child: Image.memory(
-                                                      _imageBytes!,
-                                                      fit: BoxFit.cover,
+                                                    width: _effectiveDisplayImageSize!
+                                                        .width,
+                                                    height: _effectiveDisplayImageSize!
+                                                        .height,
+                                                    child: Center(
+                                                      child: Transform(
+                                                        alignment: Alignment.center,
+                                                        transform: Matrix4.identity()
+                                                          ..scaleByDouble(
+                                                            _flipHorizontal ? -1.0 : 1.0,
+                                                            _flipVertical ? -1.0 : 1.0,
+                                                            1.0,
+                                                            1.0,
+                                                          )
+                                                          ..rotateZ(
+                                                            _quarterTurns * math.pi / 2,
+                                                          ),
+                                                        child: SizedBox(
+                                                          width: _displayImageSize!.width,
+                                                          height: _displayImageSize!.height,
+                                                          child: Image.memory(
+                                                            _imageBytes!,
+                                                            fit: BoxFit.cover,
+                                                          ),
+                                                        ),
+                                                      ),
                                                     ),
                                                   ),
                                                 ),

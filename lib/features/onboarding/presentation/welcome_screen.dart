@@ -74,7 +74,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   ),
                   title: "Male or Female?\nLet's Find Out!",
                   subtitle:
-                      'Record a meow or upload a pic. Our AI listens, looks, and gives you the answer.',
+                      'Record a meow. Our AI listens, looks, and gives you the answer.',
                 ),
               ],
             ),
