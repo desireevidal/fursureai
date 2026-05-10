@@ -15,7 +15,6 @@ class GenderResultCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMale = result.gender.toLowerCase() == 'male';
-    final accuracyPct = (result.confidence * 100).toStringAsFixed(2);
 
     final brand = context.brand;
 
@@ -36,13 +35,11 @@ class GenderResultCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Label('Gender', variant: LabelVariant.h3),
-              PredictionInfoBadge(
-                accuracyText: 'Accuracy: $accuracyPct%',
-              ),
+              Label('Gender', variant: LabelVariant.h3),
+              PredictionInfoBadge(),
             ],
           ),
           const SizedBox(height: 14),

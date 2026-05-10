@@ -34,14 +34,11 @@ class BreedResultCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Label('Breeds', variant: LabelVariant.h3),
-              PredictionInfoBadge(
-                accuracyText:
-                    'Accuracy: ${(result.confidence * 100).toStringAsFixed(2)}%',
-              ),
+              Label('Breeds', variant: LabelVariant.h3),
+              PredictionInfoBadge(),
             ],
           ),
           SizedBox(height: context.spacing.m),

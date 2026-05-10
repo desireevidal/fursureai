@@ -160,12 +160,7 @@ Future<void> showPredictionInfoSheet(BuildContext context) {
 }
 
 class PredictionInfoBadge extends StatelessWidget {
-  const PredictionInfoBadge({
-    super.key,
-    required this.accuracyText,
-  });
-
-  final String accuracyText;
+  const PredictionInfoBadge({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -186,13 +181,6 @@ class PredictionInfoBadge extends StatelessWidget {
               Icons.info_outline,
               size: 15,
               color: colorScheme.onSurfaceVariant,
-            ),
-            SizedBox(width: context.spacing.xs),
-            Label(
-              accuracyText,
-              variant: LabelVariant.caption,
-              color: colorScheme.onSurfaceVariant,
-              uppercase: false,
             ),
           ],
         ),

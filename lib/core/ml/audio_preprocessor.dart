@@ -224,26 +224,31 @@ class AudioPreprocessor {
 
     double peak = 0.0;
     double sumSq = 0.0;
-    int activeSamples = 0;
 
     for (final sample in audio) {
       final abs = sample.abs();
       if (abs > peak) peak = abs;
       sumSq += sample * sample;
-      if (abs >= 0.015) {
+    }
+
+    final rms = math.sqrt(sumSq / audio.length);
+    final activeThreshold = math.max(0.006, math.min(0.015, peak * 0.22));
+    int activeSamples = 0;
+
+    for (final sample in audio) {
+      if (sample.abs() >= activeThreshold) {
         activeSamples++;
       }
     }
 
-    final rms = math.sqrt(sumSq / audio.length);
     final activeRatio = activeSamples / audio.length;
     final crestFactor = peak / math.max(_amin, rms);
 
-    if (peak < 0.035 ||
-        rms < 0.004 ||
-        activeRatio < 0.012 ||
-        activeRatio > 0.82 ||
-        crestFactor < 1.8) {
+    if (peak < 0.022 ||
+        rms < 0.0025 ||
+        activeRatio < 0.006 ||
+        activeRatio > 0.90 ||
+        crestFactor < 1.55) {
       return false;
     }
 
@@ -340,7 +345,7 @@ class AudioPreprocessor {
         flatnessSum += flatness;
         analyzedFrames++;
 
-        if (coreRatio >= 0.28 && lowRatio <= 0.50 && flatness <= 0.68) {
+        if (coreRatio >= 0.24 && lowRatio <= 0.56 && flatness <= 0.74) {
           voicedLikeFrames++;
         }
       }
@@ -355,10 +360,10 @@ class AudioPreprocessor {
     final averageFlatness = flatnessSum / analyzedFrames;
     final voicedFrameRatio = voicedLikeFrames / analyzedFrames;
 
-    final hasMidBandMeowEnergy = meowBandRatio >= 0.48 && coreRatio >= 0.24;
-    final isNotWindDominated = lowRatio <= 0.52;
-    final isNotBroadbandNoise = highRatio <= 0.42 && averageFlatness <= 0.78;
-    final hasVoicedShape = voicedFrameRatio >= 0.18 && averageFlatness <= 0.72;
+    final hasMidBandMeowEnergy = meowBandRatio >= 0.42 && coreRatio >= 0.20;
+    final isNotWindDominated = lowRatio <= 0.58;
+    final isNotBroadbandNoise = highRatio <= 0.46 && averageFlatness <= 0.82;
+    final hasVoicedShape = voicedFrameRatio >= 0.12 && averageFlatness <= 0.78;
 
     return hasMidBandMeowEnergy &&
         isNotWindDominated &&
