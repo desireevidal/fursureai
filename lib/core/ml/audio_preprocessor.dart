@@ -237,8 +237,133 @@ class AudioPreprocessor {
 
     final rms = math.sqrt(sumSq / audio.length);
     final activeRatio = activeSamples / audio.length;
+    final crestFactor = peak / math.max(_amin, rms);
 
-    return peak >= 0.025 && rms >= 0.003 && activeRatio >= 0.005;
+    if (peak < 0.035 ||
+        rms < 0.004 ||
+        activeRatio < 0.012 ||
+        activeRatio > 0.82 ||
+        crestFactor < 1.8) {
+      return false;
+    }
+
+    return _hasMeowLikeSpectrum(audio);
+  }
+
+  bool _hasMeowLikeSpectrum(Float32List audio) {
+    if (audio.isEmpty) return false;
+
+    final window = Float64List(_nFft);
+    for (var i = 0; i < _nFft; i++) {
+      window[i] = 0.5 - 0.5 * math.cos(2 * math.pi * i / (_nFft - 1));
+    }
+
+    final frameCount = math.max(
+      1,
+      audio.length <= _nFft
+          ? 1
+          : 1 + ((audio.length - _nFft) ~/ _hopLength),
+    );
+
+    double totalEnergy = 0.0;
+    double lowEnergy = 0.0;
+    double meowBandEnergy = 0.0;
+    double coreMeowEnergy = 0.0;
+    double highEnergy = 0.0;
+    double flatnessSum = 0.0;
+    int analyzedFrames = 0;
+    int voicedLikeFrames = 0;
+
+    final re = Float64List(_nFft);
+    final im = Float64List(_nFft);
+
+    for (var frame = 0; frame < frameCount; frame++) {
+      final start = frame * _hopLength;
+      for (var i = 0; i < _nFft; i++) {
+        final sampleIndex = start + i;
+        re[i] = sampleIndex < audio.length
+            ? audio[sampleIndex] * window[i]
+            : 0.0;
+        im[i] = 0.0;
+      }
+
+      _fftInPlace(re, im);
+
+      double frameTotal = 0.0;
+      double frameLow = 0.0;
+      double frameMeowBand = 0.0;
+      double frameCore = 0.0;
+      double frameHigh = 0.0;
+      double bandSum = 0.0;
+      double bandLogSum = 0.0;
+      int bandBins = 0;
+
+      for (var k = 1; k < _specBins; k++) {
+        final frequency = k * _sr / _nFft;
+        if (frequency < 80 || frequency > 8000) continue;
+
+        final power = re[k] * re[k] + im[k] * im[k];
+        frameTotal += power;
+
+        if (frequency < 320) {
+          frameLow += power;
+        }
+        if (frequency >= 320 && frequency <= 4500) {
+          frameMeowBand += power;
+        }
+        if (frequency >= 500 && frequency <= 3200) {
+          frameCore += power;
+          bandSum += power;
+          bandLogSum += math.log(math.max(_amin, power));
+          bandBins++;
+        }
+        if (frequency >= 5000) {
+          frameHigh += power;
+        }
+      }
+
+      if (frameTotal <= _amin) continue;
+
+      totalEnergy += frameTotal;
+      lowEnergy += frameLow;
+      meowBandEnergy += frameMeowBand;
+      coreMeowEnergy += frameCore;
+      highEnergy += frameHigh;
+
+      if (bandBins > 0 && bandSum > _amin) {
+        final geometricMean = math.exp(bandLogSum / bandBins);
+        final arithmeticMean = bandSum / bandBins;
+        final flatness = geometricMean / math.max(_amin, arithmeticMean);
+        final coreRatio = frameCore / frameTotal;
+        final lowRatio = frameLow / frameTotal;
+
+        flatnessSum += flatness;
+        analyzedFrames++;
+
+        if (coreRatio >= 0.28 && lowRatio <= 0.50 && flatness <= 0.68) {
+          voicedLikeFrames++;
+        }
+      }
+    }
+
+    if (totalEnergy <= _amin || analyzedFrames == 0) return false;
+
+    final lowRatio = lowEnergy / totalEnergy;
+    final meowBandRatio = meowBandEnergy / totalEnergy;
+    final coreRatio = coreMeowEnergy / totalEnergy;
+    final highRatio = highEnergy / totalEnergy;
+    final averageFlatness = flatnessSum / analyzedFrames;
+    final voicedFrameRatio = voicedLikeFrames / analyzedFrames;
+
+    final hasMidBandMeowEnergy = meowBandRatio >= 0.48 && coreRatio >= 0.24;
+    final isNotWindDominated = lowRatio <= 0.52;
+    final isNotBroadbandNoise = highRatio <= 0.42 && averageFlatness <= 0.78;
+    final hasVoicedShape = voicedFrameRatio >= 0.18 && averageFlatness <= 0.72;
+
+    return hasMidBandMeowEnergy &&
+        isNotWindDominated &&
+        isNotBroadbandNoise &&
+        hasVoicedShape;
   }
 
   List<Float64List> _mfcc(Float32List audio) {

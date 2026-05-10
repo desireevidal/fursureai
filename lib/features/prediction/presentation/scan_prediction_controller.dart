@@ -10,6 +10,9 @@ import 'package:fursure/features/results/data/prediction_record.dart';
 import '../data/breed_result.dart';
 import '../data/gender_result.dart';
 
+const String _meowRequiredMessage =
+    'No meow detected. Please record or upload a clear meow before continuing.';
+
 @immutable
 class ScanPredictionResult {
   const ScanPredictionResult({
@@ -37,6 +40,14 @@ class ScanPredictionController extends AsyncNotifier<ScanPredictionResult?> {
     BreedResult? breedResult;
     GenderResult? genderResult;
 
+    if (audioPath == null || audioPath.trim().isEmpty) {
+      state = AsyncError(
+        const InferenceException(_meowRequiredMessage),
+        StackTrace.current,
+      );
+      return;
+    }
+
     if (image != null) {
       try {
         breedResult = AppConfig.breedSpec.usePlaceholder
@@ -52,24 +63,35 @@ class ScanPredictionController extends AsyncNotifier<ScanPredictionResult?> {
       }
     }
 
-    if (audioPath != null) {
-      try {
-        genderResult = AppConfig.genderSpec.usePlaceholder
-            ? await ref
-                  .read(placeholderGenderRepositoryProvider)
-                  .predict(File(audioPath))
-            : await ref
-                  .read(genderRepositoryProvider)
-                  .predict(File(audioPath));
-      } on InferenceException catch (e, st) {
-        if (e.message.startsWith('No meow detected')) {
-          state = AsyncError(e, st);
-          return;
-        }
-        debugPrint('Gender prediction failed: $e\n$st');
-      } catch (e, st) {
-        debugPrint('Gender prediction failed: $e\n$st');
-      }
+    try {
+      genderResult = AppConfig.genderSpec.usePlaceholder
+          ? await ref
+                .read(placeholderGenderRepositoryProvider)
+                .predict(File(audioPath))
+          : await ref.read(genderRepositoryProvider).predict(File(audioPath));
+    } on InferenceException catch (e, st) {
+      debugPrint('Gender prediction failed: $e\n$st');
+      state = AsyncError(
+        InferenceException(
+          e.message.startsWith('No meow detected')
+              ? e.message
+              : '$_meowRequiredMessage ${e.message}',
+        ),
+        st,
+      );
+      return;
+    } on AppException catch (e, st) {
+      state = AsyncError(e, st);
+      return;
+    } catch (e, st) {
+      debugPrint('Gender prediction failed: $e\n$st');
+      state = AsyncError(
+        const InferenceException(
+          'No meow detected. We could not analyze the meow. Please try again with a short, clear audio clip.',
+        ),
+        st,
+      );
+      return;
     }
 
     state = AsyncData(
@@ -80,8 +102,8 @@ class ScanPredictionController extends AsyncNotifier<ScanPredictionResult?> {
           breedConfidence: breedResult?.confidence,
           secondaryBreed: breedResult?.secondaryBreed,
           secondaryBreedConfidence: breedResult?.secondaryConfidence,
-          gender: genderResult?.gender,
-          genderConfidence: genderResult?.confidence,
+          gender: genderResult.gender,
+          genderConfidence: genderResult.confidence,
           timestamp: DateTime.now(),
           imagePath: image?.path,
         ),
