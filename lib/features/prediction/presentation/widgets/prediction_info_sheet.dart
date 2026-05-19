@@ -7,9 +7,9 @@ import 'package:fursure/core/theme/brand_colors.dart';
 import 'package:fursure/core/widgets/label.dart';
 
 const String _predictionInfoMessage =
-    'FurSure uses one AI model to identify breed from the photo and another '
-    'to identify gender from the meow. Both run together in one scan so you '
-    'get a single combined result.';
+    'FurSure uses separate AI models for breed and gender classification.'
+    ' Breed is analyzed from the cat photo, while gender is analyzed from the meow recording.'
+    ' Both outputs are displayed together in one cat profile.';
 
 Future<void> showPredictionInfoSheet(BuildContext context) {
   final theme = Theme.of(context);
@@ -112,7 +112,7 @@ Future<void> showPredictionInfoSheet(BuildContext context) {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Label(
-                              'Combined result',
+                              'Unified profile',
                               variant: LabelVariant.body,
                               weight: FontWeight.w600,
                               uppercase: false,
