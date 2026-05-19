@@ -541,7 +541,7 @@ class _ExportChoiceSheet extends StatelessWidget {
               icon: Icons.share_outlined,
               gradient: [brand.purple, brand.deepPurple],
               title: 'Share',
-              subtitle: 'Send via AirDrop, Drive, Messages…',
+              subtitle: 'Send via Quick Share, Bluetooth…',
               onTap: () => Navigator.of(context).pop(_ExportChoice.share),
             ),
             SizedBox(height: spacing.m),
