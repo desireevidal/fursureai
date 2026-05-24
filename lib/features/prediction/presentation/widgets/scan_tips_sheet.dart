@@ -177,7 +177,7 @@ class _ScanTipsSheet extends StatelessWidget {
         title: 'Photo tips',
         subtitle: 'Use a clear cat photo so the breed scan has the best chance of reading the face and coat details correctly.',
         didYouKnow:
-            'The breed scan works best when the cat is easy to see. A clear face, clean lighting, and a simple frame usually lead to better results.',
+            'FurSure AI predicts based on learned cat breed patterns from supported training data. Clear cat photos usually produce more reliable results.\n\nUnsupported or unclear inputs may still generate predictions based on similar learned features.',
         sections: [
           _TipsSectionData(
             title: 'Keep the scene simple',
@@ -231,7 +231,7 @@ class _ScanTipsSheet extends StatelessWidget {
         title: 'Meow tips',
         subtitle: 'Use a short, clear meow so the gender scan can focus on the cat vocal sound instead of room noise.',
         didYouKnow:
-            'The audio scan is listening for meow patterns. A clean meow is much more helpful than long clips with purring, talking, or background sounds.',
+            'FurSure AI analyzes learned meow patterns from supported audio data. Clear meow recordings usually improve prediction reliability.\n\nNoisy or unsupported sounds may affect prediction results.',
         sections: [
           _TipsSectionData(
             title: 'Make it easy to hear',
@@ -330,7 +330,7 @@ class _DidYouKnowCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Label(
-                  'Did you know?',
+                  'AI Notice',
                   variant: LabelVariant.body,
                   weight: FontWeight.w700,
                   uppercase: false,
@@ -497,8 +497,8 @@ class _PhotoGuideExamples extends StatelessWidget {
               kind: _VisualCardKind.photoTooFar,
             ),
             _VisualGuideCardData(
-              title: 'Good close-up',
-              subtitle: 'Make the face shape and features clearly visible.',
+              title: 'Good framing',
+              subtitle: 'Keep the face and body clearly visible.',
               isGood: true,
               kind: _VisualCardKind.photoFaceCloseup,
             ),
