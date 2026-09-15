@@ -43,3 +43,21 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Secrets / local credentials
+.env
+.env.*
+!.env.example
+
+# Android signing credentials
+*.jks
+*.keystore
+*.p12
+key.properties
+
+# Private keys / certificates
+*.pem
+*.key
+
+# Local browser/test data
+/tmp/
